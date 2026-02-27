@@ -120,7 +120,8 @@
   <!-- ║  JIRA API MODE                                               ║ -->
   <!-- ╚═══════════════════════════════════════════════════════════════╝ -->
   <div class="section hidden" id="jiraSection">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px;">
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
       <div class="section-title" style="margin-bottom:0;">🔗 Conectar con Jira API</div>
       <button class="btn btn-secondary btn-sm" onclick="selectMode(null)">← Cambiar modo</button>
     </div>
@@ -135,7 +136,7 @@
     </div>
 
     <!-- Shown only when server is NOT running -->
-    <div class="alert alert-warning hidden" id="serverOfflineAlert" style="margin-bottom:0;">
+    <div class="alert alert-warning hidden" id="serverOfflineAlert" style="margin-bottom:16px;">
       <div>
         <strong>El servidor no está corriendo.</strong>
         Abre una terminal en la carpeta del proyecto y ejecuta:
@@ -143,26 +144,25 @@
           <code id="serverCmd">npm install &amp;&amp; node server.js</code>
           <button class="btn-copy" id="copyServerCmd" onclick="copyServerCommand()" title="Copiar comando">📋 Copiar</button>
         </div>
-        Luego haz clic en <strong>Verificar</strong> o recarga esta página desde
+        Luego haz clic en <strong>Verificar</strong> o recarga desde
         <a href="http://localhost:3000" target="_blank">http://localhost:3000</a>.
       </div>
     </div>
 
-    <div class="jira-form">
+    <!-- Credentials (collapsible) -->
+    <details class="jira-credentials-card" id="jiraCredentialsDetails" open>
+      <summary class="jira-credentials-summary">🔑 Credenciales de Jira</summary>
       <div class="jira-form-grid">
-
         <div class="filter-group" style="grid-column:1/-1;">
-          <label>URL de Jira</label>
+          <label for="jiraBaseUrl">URL de Jira</label>
           <input type="url" id="jiraBaseUrl"
                  placeholder="https://tuempresa.atlassian.net"
                  value="https://newryndem.atlassian.net">
         </div>
-
         <div class="filter-group">
           <label>Email de Atlassian</label>
           <input type="email" id="jiraEmail" placeholder="tu@email.com">
         </div>
-
         <div class="filter-group">
           <label>
             API Token
@@ -179,14 +179,18 @@
                     onclick="toggleTokenVisibility()">Mostrar</button>
           </div>
         </div>
+      </div>
+    </details>
 
-      </div><!-- /.jira-form-grid -->
-
-      <div class="filter-group" style="margin-top:14px;">
-        <label>Consulta JQL</label>
+    <!-- JQL section (always prominent) -->
+    <div class="jira-jql-section">
+      <div class="filter-group">
+        <label for="jiraJql" style="font-size:.85rem;font-weight:700;color:var(--text);text-transform:none;letter-spacing:0;">
+          Consulta JQL
+        </label>
         <input type="text" id="jiraJql"
                placeholder="project = PESS ORDER BY created DESC"
-               style="font-family:monospace;">
+               style="font-family:monospace;font-size:.9rem;">
         <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
           <span style="font-size:.78rem;color:var(--text2);">Ejemplos:</span>
           <button class="jql-chip" onclick="insertJql('project = PESS ORDER BY created DESC')">project = PESS</button>
@@ -195,28 +199,25 @@
           <button class="jql-chip" onclick="insertJql('project = PESS AND sprint in openSprints()')">Sprint activo</button>
         </div>
       </div>
-
-      <div style="margin-top:20px;">
-        <button class="btn btn-primary" id="jiraConnectBtn">
-          🔍 Conectar y cargar tareas
-        </button>
+      <div style="margin-top:16px;">
+        <button class="btn btn-primary" id="jiraConnectBtn">🔍 Conectar y cargar tareas</button>
       </div>
+    </div>
 
-      <!-- Status -->
-      <div class="alert hidden" id="jiraConnectStatus" style="margin-top:14px;"></div>
+    <!-- Status -->
+    <div class="alert hidden" id="jiraConnectStatus" style="margin-top:14px;"></div>
 
-      <!-- Progress -->
-      <div id="jiraProgress" class="hidden" style="margin-top:14px;">
-        <div style="display:flex;justify-content:space-between;font-size:.82rem;color:var(--text2);margin-bottom:6px;">
-          <span id="jiraProgressText">Cargando...</span>
-          <span id="jiraProgressCount"></span>
-        </div>
-        <div class="progress-bar-wrap">
-          <div class="progress-bar" id="jiraProgressBar" style="width:0%"></div>
-        </div>
+    <!-- Progress -->
+    <div id="jiraProgress" class="hidden" style="margin-top:14px;">
+      <div style="display:flex;justify-content:space-between;font-size:.82rem;color:var(--text2);margin-bottom:6px;">
+        <span id="jiraProgressText">Cargando...</span>
+        <span id="jiraProgressCount"></span>
       </div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar" id="jiraProgressBar" style="width:0%"></div>
+      </div>
+    </div>
 
-    </div><!-- /.jira-form -->
   </div><!-- /#jiraSection -->
 
 
@@ -227,6 +228,17 @@
 
     <div id="alertsContainer"></div>
     <div class="stats-grid" id="statsGrid"></div>
+
+    <!-- Jira query panel — visible only in API mode to re-run queries -->
+    <div id="jiraQueryPanel" class="hidden jira-query-panel">
+      <div class="jira-query-bar">
+        <span class="jira-query-icon">🔗</span>
+        <input type="text" id="jiraQueryInput" class="jira-query-input"
+               placeholder="JQL — edita y haz clic en Actualizar">
+        <button class="btn btn-primary btn-sm" id="jiraRefreshBtn">🔄 Actualizar resultados</button>
+        <button class="btn btn-secondary btn-sm" onclick="showJiraForm()">⚙️ Credenciales</button>
+      </div>
+    </div>
 
     <div class="section" style="padding-bottom:0;">
       <div class="tabs">

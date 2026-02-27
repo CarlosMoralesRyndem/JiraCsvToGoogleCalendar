@@ -46,6 +46,15 @@ function toggleTokenVisibility() {
 }
 window.toggleTokenVisibility = toggleTokenVisibility;
 
+// ── Show Jira form from the results query panel ───────────────────────
+function showJiraForm() {
+  document.getElementById('jiraSection').classList.remove('hidden');
+  const creds = document.getElementById('jiraCredentialsDetails');
+  if (creds) creds.open = true;
+  document.getElementById('jiraSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+window.showJiraForm = showJiraForm;
+
 // ── Stats cards ───────────────────────────────────────────────────────
 function updateStats() {
   const withDates = filteredData.filter(r => r.hasAnyDate);
@@ -199,6 +208,12 @@ function initReset() {
     if (status) { status.classList.add('hidden'); status.textContent = ''; }
     const progress = document.getElementById('jiraProgress');
     if (progress) progress.classList.add('hidden');
+
+    // Clear query panel
+    const qp = document.getElementById('jiraQueryPanel');
+    if (qp) qp.classList.add('hidden');
+    const qi = document.getElementById('jiraQueryInput');
+    if (qi) qi.value = '';
 
     // Go back to mode selector
     selectMode(null);

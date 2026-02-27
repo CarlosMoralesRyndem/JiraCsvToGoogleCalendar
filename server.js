@@ -88,14 +88,15 @@ app.post('/api/jira/fields', async (req, res) => {
   }
 });
 
-/** Search issues via JQL with pagination */
+/** Search issues via JQL with pagination — uses the new /search/jql endpoint (GET) */
 app.post('/api/jira/search', async (req, res) => {
   const { baseUrl, email, apiToken, jql, fields = [], maxResults = 100, startAt = 0 } = req.body;
   try {
     const { ok, status, data } = await jiraRequest(
       baseUrl, email, apiToken,
-      '/rest/api/3/search',
-      { jql, fields: fields.join(','), maxResults, startAt, expand: 'names' }
+      '/rest/api/3/search/jql',
+      { jql, fields: fields.join(','), maxResults, startAt }
+      // method defaults to GET, no body
     );
     res.status(status).json(data);
   } catch (err) {

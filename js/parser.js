@@ -60,6 +60,7 @@ function getVal(row, field) {
  */
 function processCSV(data, headers) {
   columnMap = buildColumnMap(headers);
+  columnMap._source = 'csv';
 
   // ── Validate required columns ─────────────────────────────────────
   const missing = [];
@@ -129,4 +130,16 @@ function loadRawData(rows) {
   document.getElementById('jiraSection').classList.add('hidden');
   document.getElementById('resultsSection').classList.remove('hidden');
   document.getElementById('resetBtn').style.display = '';
+
+  // Show/populate the JQL query bar when source is API
+  const queryPanel = document.getElementById('jiraQueryPanel');
+  const queryInput = document.getElementById('jiraQueryInput');
+  if (queryPanel) {
+    if (columnMap._source === 'api') {
+      if (queryInput) queryInput.value = document.getElementById('jiraJql')?.value || '';
+      queryPanel.classList.remove('hidden');
+    } else {
+      queryPanel.classList.add('hidden');
+    }
+  }
 }

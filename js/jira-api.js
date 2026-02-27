@@ -219,6 +219,7 @@ async function connectToJira() {
 
     // Fake columnMap so updateAlerts() knows dates were detected
     columnMap = {
+      _source: 'api',
       key: 'key', summary: 'summary', status: 'status',
       priority: 'priority', assignee: 'assignee',
       description: 'description', project: 'project',
@@ -303,10 +304,23 @@ function insertJql(fragment) {
 }
 window.insertJql = insertJql;
 
+// ── Re-query from results query panel ────────────────────────────────
+async function refreshJiraQuery() {
+  const queryInput = document.getElementById('jiraQueryInput');
+  const jqlInput   = document.getElementById('jiraJql');
+  if (!queryInput || !jqlInput) return;
+  jqlInput.value = queryInput.value.trim();
+  await connectToJira();
+}
+window.refreshJiraQuery = refreshJiraQuery;
+
 // ── Init ──────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('jiraConnectBtn')
     ?.addEventListener('click', connectToJira);
+
+  document.getElementById('jiraRefreshBtn')
+    ?.addEventListener('click', refreshJiraQuery);
 
   document.getElementById('checkServerBtn')
     ?.addEventListener('click', checkServerStatus);

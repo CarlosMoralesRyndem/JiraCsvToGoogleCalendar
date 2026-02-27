@@ -266,6 +266,48 @@ tr:hover td { background: var(--surface2); }
 .progress-bar-wrap { background: var(--surface2); border-radius: 20px; height: 10px; overflow: hidden; border: 1px solid var(--border); }
 .progress-bar      { height: 100%; border-radius: 20px; background: var(--primary); transition: width .3s ease; }
 
+/* ========== JIRA QUERY PANEL ========== */
+.jira-query-panel {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 10px 16px; margin-bottom: 16px; box-shadow: var(--shadow);
+}
+.jira-query-bar  { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.jira-query-icon { font-size: 1rem; flex-shrink: 0; color: var(--primary); }
+.jira-query-input {
+  flex: 1; min-width: 200px; padding: 7px 10px;
+  border: 1px solid var(--border); border-radius: 6px;
+  background: var(--surface2); color: var(--text);
+  font-family: monospace; font-size: .875rem;
+}
+.jira-query-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,82,204,.15); }
+
+/* ========== JIRA CREDENTIALS CARD ========== */
+.jira-credentials-card {
+  border: 1px solid var(--border); border-radius: 8px; margin-bottom: 16px; overflow: hidden;
+}
+.jira-credentials-summary {
+  padding: 11px 16px; cursor: pointer; font-weight: 600; font-size: .875rem;
+  list-style: none; display: flex; align-items: center; gap: 8px;
+  background: var(--surface2); user-select: none; color: var(--text2);
+  transition: color var(--transition), background var(--transition);
+}
+.jira-credentials-summary:hover { background: var(--border); color: var(--text); }
+.jira-credentials-card[open] .jira-credentials-summary { color: var(--text); border-bottom: 1px solid var(--border); }
+.jira-credentials-summary::marker,
+.jira-credentials-summary::-webkit-details-marker { display: none; }
+.jira-credentials-summary::after {
+  content: '›'; margin-left: auto; font-size: 1.2rem; font-weight: 700;
+  transition: transform .2s; display: inline-block;
+}
+.jira-credentials-card[open] .jira-credentials-summary::after { transform: rotate(90deg); }
+.jira-credentials-card .jira-form-grid { padding: 16px; }
+
+/* ========== JIRA JQL SECTION ========== */
+.jira-jql-section {
+  border: 1px solid var(--border); border-radius: 8px; padding: 16px;
+  background: var(--surface2);
+}
+
 /* ========== RESPONSIVE ========== */
 @media (max-width: 640px) {
   .app-header { padding: 10px 14px; }
