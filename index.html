@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jira → Google Calendar Converter</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- ── Loading Spinner ──────────────────────────────────────────────── -->
+<div class="spinner-overlay" id="spinnerOverlay">
+  <div class="spinner"></div>
+  <div class="spinner-text">Procesando archivo...</div>
+</div>
+
+<!-- ── Header ───────────────────────────────────────────────────────── -->
+<header class="app-header">
+  <div class="logo">
+    <svg viewBox="0 0 32 32" fill="none">
+      <rect width="32" height="32" rx="8" fill="#0052CC"/>
+      <path d="M16 6L8 14l3 3 5-5v14h4V12l5 5 3-3-8-8z" fill="white"/>
+    </svg>
+    Jira → Google Calendar
+  </div>
+  <div class="header-actions">
+    <button class="theme-btn" id="themeBtn" title="Cambiar tema">🌙</button>
+    <button class="btn btn-secondary btn-sm" id="resetBtn" style="display:none">↺ Reiniciar</button>
+  </div>
+</header>
+
+<main class="main">
+
+  <!-- ── Upload Section ─────────────────────────────────────────────── -->
+  <div class="section" id="uploadSection">
+    <div class="section-title">📁 Cargar archivo CSV de Jira</div>
+
+    <div class="upload-zone" id="uploadZone">
+      <div class="upload-icon">📄</div>
+      <h3>Arrastra tu CSV de Jira aquí</h3>
+      <p>o haz clic para seleccionar el archivo</p>
+      <br>
+      <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+        Seleccionar archivo
+      </button>
+    </div>
+    <input type="file" id="fileInput" accept=".csv">
+
+    <!-- Instructions (collapsed by default) -->
+    <details style="margin-top:20px;">
+      <summary style="cursor:pointer;font-weight:600;color:var(--primary);font-size:.9rem;">
+        ℹ️ ¿Cómo exportar desde Jira e importar a Google Calendar?
+      </summary>
+      <div class="steps" style="margin-top:14px;">
+        <div class="step">
+          <div class="step-num">1</div>
+          <h4>Exportar desde Jira</h4>
+          <ol>
+            <li>Ve a tu proyecto en Jira</li>
+            <li>Abre la vista de lista o backlog</li>
+            <li>Aplica los filtros deseados</li>
+            <li>Haz clic en <strong>Exportar → Exportar a CSV</strong></li>
+            <li>Selecciona "Todos los campos" para incluir fechas personalizadas</li>
+          </ol>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <h4>Convertir con esta herramienta</h4>
+          <ol>
+            <li>Sube el CSV exportado de Jira</li>
+            <li>Aplica filtros si lo deseas</li>
+            <li>Revisa el resumen y los gráficos</li>
+            <li>Descarga el CSV para Google Calendar</li>
+          </ol>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <h4>Importar a Google Calendar</h4>
+          <ol>
+            <li>Abre <a href="https://calendar.google.com" target="_blank">Google Calendar</a></li>
+            <li>Haz clic en ⚙️ → <strong>Configuración</strong></li>
+            <li>Menú izquierdo: <strong>Importar y exportar</strong></li>
+            <li>Selecciona el CSV descargado</li>
+            <li>Elige el calendario destino y haz clic en <strong>Importar</strong></li>
+          </ol>
+        </div>
+      </div>
+    </details>
+  </div><!-- /#uploadSection -->
+
+
+  <!-- ── Results (hidden until file loaded) ─────────────────────────── -->
+  <div id="resultsSection" class="hidden">
+
+    <!-- Alert banners -->
+    <div id="alertsContainer"></div>
+
+    <!-- Stats cards -->
+    <div class="stats-grid" id="statsGrid"></div>
+
+    <!-- Tabbed panel -->
+    <div class="section" style="padding-bottom:0;">
+
+      <div class="tabs">
+        <button class="tab active" data-tab="filters">🔍 Filtros</button>
+        <button class="tab"        data-tab="table"  >📋 Tabla resumen</button>
+        <button class="tab"        data-tab="charts" >📊 Gráficos</button>
+        <button class="tab"        data-tab="options">⚙️ Opciones</button>
+        <button class="tab"        data-tab="export" >⬇️ Exportar</button>
+      </div>
+
+      <!-- ─ FILTERS tab ─────────────────────────────────────────────── -->
+      <div class="tab-content active" id="tab-filters" style="padding-bottom:20px;">
+        <div class="filters-grid" id="filtersGrid"></div>
+        <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-primary"   id="applyFiltersBtn">Aplicar filtros</button>
+          <button class="btn btn-secondary" id="clearFiltersBtn">Limpiar filtros</button>
+        </div>
+      </div>
+
+      <!-- ─ TABLE tab ───────────────────────────────────────────────── -->
+      <div class="tab-content" id="tab-table" style="padding-bottom:20px;">
+        <div id="tableWarn" style="margin-bottom:10px;"></div>
+        <div class="table-wrap">
+          <table id="summaryTable">
+            <thead>
+              <tr>
+                <th>Clave</th>
+                <th>Título</th>
+                <th>Inicio</th>
+                <th>Fin</th>
+                <th>Estado</th>
+                <th>Prioridad</th>
+                <th>Proyecto</th>
+                <th>Asignado a</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+        <div id="tablePagination" style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;"></div>
+      </div>
+
+      <!-- ─ CHARTS tab ──────────────────────────────────────────────── -->
+      <div class="tab-content" id="tab-charts" style="padding-bottom:20px;">
+        <div class="charts-grid">
+          <div class="chart-card">
+            <h4>📁 Por proyecto</h4>
+            <div class="chart-container"><canvas id="chartProject"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h4>🔄 Por estado</h4>
+            <div class="chart-container"><canvas id="chartStatus"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h4>⚡ Por prioridad</h4>
+            <div class="chart-container"><canvas id="chartPriority"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h4>👤 Por asignado (top 8)</h4>
+            <div class="chart-container"><canvas id="chartAssignee"></canvas></div>
+          </div>
+        </div>
+        <div class="chart-card" style="margin-top:20px;">
+          <h4>📅 Timeline de tareas</h4>
+          <div class="timeline-wrap">
+            <div id="ganttChart"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─ OPTIONS tab ─────────────────────────────────────────────── -->
+      <div class="tab-content" id="tab-options" style="padding-bottom:20px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:24px;">
+
+          <div>
+            <div class="section-title">📝 Contenido del evento</div>
+            <label class="option-item">
+              <input type="checkbox" id="optIncludeDesc" checked>
+              <label for="optIncludeDesc">Incluir descripción completa</label>
+            </label>
+            <label class="option-item">
+              <input type="checkbox" id="optIncludeLink" checked>
+              <label for="optIncludeLink">Incluir enlace a Jira</label>
+            </label>
+            <label class="option-item">
+              <input type="checkbox" id="optIncludeStatus" checked>
+              <label for="optIncludeStatus">Incluir estado</label>
+            </label>
+            <label class="option-item">
+              <input type="checkbox" id="optIncludePriority" checked>
+              <label for="optIncludePriority">Incluir prioridad</label>
+            </label>
+            <label class="option-item">
+              <input type="checkbox" id="optIncludeAssignee" checked>
+              <label for="optIncludeAssignee">Incluir persona asignada</label>
+            </label>
+          </div>
+
+          <div>
+            <div class="section-title">🏷️ Formato del título</div>
+            <div class="radio-group">
+              <label><input type="radio" name="titleFormat" value="key_summary" checked> [CLAVE] Resumen</label>
+              <label><input type="radio" name="titleFormat" value="summary_only"> Solo resumen</label>
+              <label><input type="radio" name="titleFormat" value="project_key_summary"> [Proyecto - CLAVE] Resumen</label>
+              <label><input type="radio" name="titleFormat" value="key_only"> Solo clave</label>
+            </div>
+          </div>
+
+          <div>
+            <div class="section-title">📆 Tipo de evento</div>
+            <div class="radio-group">
+              <label><input type="radio" name="eventType" value="allday" checked> Todo el día (recomendado)</label>
+              <label><input type="radio" name="eventType" value="timed"> Con hora (si está en Jira)</label>
+            </div>
+          </div>
+
+          <div>
+            <div class="section-title">🔢 Cuando falta una fecha</div>
+            <div class="radio-group">
+              <label><input type="radio" name="missingDate" value="skip" checked> Omitir la tarea</label>
+              <label><input type="radio" name="missingDate" value="same"> Usar la fecha disponible para inicio y fin</label>
+              <label><input type="radio" name="missingDate" value="today"> Usar la fecha de hoy como faltante</label>
+            </div>
+          </div>
+
+        </div>
+      </div><!-- /#tab-options -->
+
+      <!-- ─ EXPORT tab ──────────────────────────────────────────────── -->
+      <div class="tab-content" id="tab-export" style="padding-bottom:20px;">
+        <div class="export-actions">
+          <button class="btn btn-success"   id="exportAllBtn">⬇️ Descargar todo en un CSV</button>
+          <button class="btn btn-primary"   id="exportByProjectBtn">📁 Un CSV por proyecto</button>
+          <button class="btn btn-secondary" id="exportByStatusBtn">🔄 Un CSV por estado</button>
+        </div>
+        <p style="margin-top:12px;font-size:.85rem;color:var(--text2);">
+          Si exportas por proyecto o estado se descargará un archivo por cada grupo.
+          Importa cada CSV en Google Calendar de forma independiente.
+        </p>
+        <div id="exportPreview" style="margin-top:16px;"></div>
+      </div>
+
+    </div><!-- /.section (tabs) -->
+  </div><!-- /#resultsSection -->
+
+</main>
+
+<!-- ── Third-party libraries ──────────────────────────────────────────── -->
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<!-- ── Application modules (order matters — config first, app last) ─── -->
+<script src="js/config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/parser.js"></script>
+<script src="js/filters.js"></script>
+<script src="js/table.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/export.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>
