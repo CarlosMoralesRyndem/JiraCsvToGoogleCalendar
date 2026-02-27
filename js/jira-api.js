@@ -244,6 +244,56 @@ async function connectToJira() {
   }
 }
 
+// ── Server health check ───────────────────────────────────────────────
+/**
+ * Ping /api/health to detect whether server.js is running.
+ * Updates the status bar in the UI accordingly.
+ */
+async function checkServerStatus() {
+  const dot       = document.getElementById('serverStatusDot');
+  const text      = document.getElementById('serverStatusText');
+  const offlineEl = document.getElementById('serverOfflineAlert');
+  const connectBtn = document.getElementById('jiraConnectBtn');
+
+  // Reset to "checking" state
+  if (dot)  { dot.className  = 'server-status-dot checking'; }
+  if (text) { text.textContent = 'Verificando servidor...'; }
+
+  try {
+    const res  = await fetch('/api/health', { cache: 'no-store' });
+    const data = await res.json();
+
+    if (data.ok) {
+      // ✅ Running
+      if (dot)       dot.className   = 'server-status-dot online';
+      if (text)      text.textContent = `Servidor activo (v${data.version})`;
+      if (offlineEl) offlineEl.classList.add('hidden');
+      if (connectBtn) connectBtn.disabled = false;
+    } else {
+      throw new Error('unexpected response');
+    }
+  } catch {
+    // ❌ Not running (fetch failed = server offline or running as file://)
+    if (dot)       dot.className   = 'server-status-dot offline';
+    if (text)      text.textContent = 'Servidor no detectado';
+    if (offlineEl) offlineEl.classList.remove('hidden');
+    if (connectBtn) connectBtn.disabled = true;
+  }
+}
+
+/** Copy the start command to clipboard and briefly confirm. */
+function copyServerCommand() {
+  const cmd = 'npm install && node server.js';
+  navigator.clipboard?.writeText(cmd).then(() => {
+    const btn = document.getElementById('copyServerCmd');
+    if (!btn) return;
+    const original = btn.textContent;
+    btn.textContent = '✅ Copiado';
+    setTimeout(() => { btn.textContent = original; }, 2000);
+  });
+}
+window.copyServerCommand = copyServerCommand;
+
 // ── JQL example chips ─────────────────────────────────────────────────
 function insertJql(fragment) {
   const el = document.getElementById('jiraJql');
@@ -258,6 +308,9 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('jiraConnectBtn')
     ?.addEventListener('click', connectToJira);
 
+  document.getElementById('checkServerBtn')
+    ?.addEventListener('click', checkServerStatus);
+
   // Allow Enter key on any field to trigger connect
   ['jiraBaseUrl', 'jiraEmail', 'jiraToken', 'jiraJql'].forEach(id => {
     document.getElementById(id)?.addEventListener('keydown', e => {
@@ -265,3 +318,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 });
+
+// Expose so app.js can call it when the user selects API mode
+window.checkServerStatus = checkServerStatus;

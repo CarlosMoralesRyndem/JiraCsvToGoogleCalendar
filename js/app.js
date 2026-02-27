@@ -27,6 +27,11 @@ function selectMode(mode) {
   selector.classList.toggle('hidden', mode !== null);
   csvSec.classList.toggle('hidden',   mode !== 'csv');
   apiSec.classList.toggle('hidden',   mode !== 'api');
+
+  // Auto-check server status every time the API mode panel opens
+  if (mode === 'api' && typeof checkServerStatus === 'function') {
+    checkServerStatus();
+  }
 }
 window.selectMode = selectMode; // needed for inline onclick in HTML
 

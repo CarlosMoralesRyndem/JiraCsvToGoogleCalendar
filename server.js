@@ -61,6 +61,11 @@ async function jiraRequest(baseUrl, email, apiToken, endpoint, params = {}, meth
 
 // ── Routes ────────────────────────────────────────────────────────────
 
+/** Health check — used by the frontend to detect if this server is running */
+app.get('/api/health', (_req, res) => {
+  res.json({ ok: true, version: '1.0.0', message: 'Servidor activo' });
+});
+
 /** Test connectivity — returns current user info */
 app.post('/api/jira/test', async (req, res) => {
   const { baseUrl, email, apiToken } = req.body;

@@ -125,12 +125,27 @@
       <button class="btn btn-secondary btn-sm" onclick="selectMode(null)">← Cambiar modo</button>
     </div>
 
-    <div class="alert alert-warning" style="margin-bottom:20px;">
-      ⚠️ Esta opción requiere el servidor local. Abre una terminal en la carpeta del proyecto y ejecuta:
-      <code style="display:block;margin-top:6px;font-size:.88rem;background:var(--surface);padding:6px 10px;border-radius:4px;font-family:monospace;">
-        npm install &nbsp;&amp;&amp;&nbsp; node server.js
-      </code>
-      Luego abre <strong>http://localhost:3000</strong> en tu navegador.
+    <!-- Server status widget -->
+    <div class="server-status-bar" id="serverStatusBar">
+      <div class="server-status-left">
+        <span class="server-status-dot" id="serverStatusDot"></span>
+        <span id="serverStatusText">Verificando servidor...</span>
+      </div>
+      <button class="btn btn-secondary btn-sm" id="checkServerBtn">🔄 Verificar</button>
+    </div>
+
+    <!-- Shown only when server is NOT running -->
+    <div class="alert alert-warning hidden" id="serverOfflineAlert" style="margin-bottom:0;">
+      <div>
+        <strong>El servidor no está corriendo.</strong>
+        Abre una terminal en la carpeta del proyecto y ejecuta:
+        <div class="copy-command-wrap">
+          <code id="serverCmd">npm install &amp;&amp; node server.js</code>
+          <button class="btn-copy" id="copyServerCmd" onclick="copyServerCommand()" title="Copiar comando">📋 Copiar</button>
+        </div>
+        Luego haz clic en <strong>Verificar</strong> o recarga esta página desde
+        <a href="http://localhost:3000" target="_blank">http://localhost:3000</a>.
+      </div>
     </div>
 
     <div class="jira-form">
