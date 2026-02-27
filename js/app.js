@@ -1,5 +1,5 @@
 // =====================================================================
-// MAIN APPLICATION — state, theme, upload, tabs, reset, alerts, stats
+// MAIN APPLICATION — state, theme, upload, mode selector, tabs, reset
 // =====================================================================
 
 // ── Theme ─────────────────────────────────────────────────────────────
@@ -9,24 +9,54 @@ function applyTheme() {
   document.body.classList.toggle('dark', isDark);
   document.getElementById('themeBtn').textContent = isDark ? '☀️' : '🌙';
   localStorage.setItem('theme', isDark ? 'dark' : 'light');
-  // Rebuild charts so they use the new text/grid colours
   if (Object.keys(chartInstances).length) rebuildCharts();
 }
 
+// ── Mode selector ─────────────────────────────────────────────────────
+/**
+ * Switch between the three "entry" views:
+ *   null  → show mode selector (home)
+ *   'csv' → show CSV upload section
+ *   'api' → show Jira API section
+ */
+function selectMode(mode) {
+  const selector = document.getElementById('modeSelectorSection');
+  const csvSec   = document.getElementById('uploadSection');
+  const apiSec   = document.getElementById('jiraSection');
+
+  selector.classList.toggle('hidden', mode !== null);
+  csvSec.classList.toggle('hidden',   mode !== 'csv');
+  apiSec.classList.toggle('hidden',   mode !== 'api');
+}
+window.selectMode = selectMode; // needed for inline onclick in HTML
+
+// ── Token visibility toggle ───────────────────────────────────────────
+function toggleTokenVisibility() {
+  const input = document.getElementById('jiraToken');
+  const btn   = document.getElementById('tokenToggleBtn');
+  if (!input) return;
+  const isHidden = input.type === 'password';
+  input.type  = isHidden ? 'text'     : 'password';
+  btn.textContent = isHidden ? 'Ocultar' : 'Mostrar';
+}
+window.toggleTokenVisibility = toggleTokenVisibility;
+
 // ── Stats cards ───────────────────────────────────────────────────────
 function updateStats() {
-  const withDates  = filteredData.filter(r => r.hasAnyDate);
-  const withBoth   = filteredData.filter(r => r.hasStart && r.hasDue);
-  const projects   = unique(filteredData.map(r => r.project));
-  const statuses   = unique(filteredData.map(r => r.status));
+  const withDates = filteredData.filter(r => r.hasAnyDate);
+  const withBoth  = filteredData.filter(r => r.hasStart && r.hasDue);
+  const projects  = unique(filteredData.map(r => r.project));
+  const statuses  = unique(filteredData.map(r => r.status));
+
+  const label0 = columnMap._source === 'api' ? 'Total desde Jira' : 'Total en CSV';
 
   const cards = [
-    { value: rawData.length,       label: 'Total en CSV'           },
-    { value: filteredData.length,  label: 'Filtradas'              },
-    { value: withDates.length,     label: 'Con al menos 1 fecha'   },
-    { value: withBoth.length,      label: 'Con inicio y fin'       },
-    { value: projects.length,      label: 'Proyectos'              },
-    { value: statuses.length,      label: 'Estados únicos'         },
+    { value: rawData.length,      label: label0              },
+    { value: filteredData.length, label: 'Filtradas'         },
+    { value: withDates.length,    label: 'Con al menos 1 fecha' },
+    { value: withBoth.length,     label: 'Con inicio y fin'  },
+    { value: projects.length,     label: 'Proyectos'         },
+    { value: statuses.length,     label: 'Estados únicos'    },
   ];
 
   document.getElementById('statsGrid').innerHTML = cards.map(c => `
@@ -37,29 +67,26 @@ function updateStats() {
   `).join('');
 }
 
-// ── Alert banner ──────────────────────────────────────────────────────
+// ── Alert banners ─────────────────────────────────────────────────────
 function updateAlerts() {
   const container = document.getElementById('alertsContainer');
   const alerts    = [];
+  const isApi     = columnMap._source === 'api';
 
-  const noDates  = filteredData.filter(r => !r.hasAnyDate);
-  const badStart = filteredData.filter(r => r.startInvalid);
-  const badDue   = filteredData.filter(r => r.dueInvalid);
-  const allBad   = [...new Set([...badStart, ...badDue])];
+  const noDates = filteredData.filter(r => !r.hasAnyDate);
+  const allBad  = filteredData.filter(r => r.startInvalid || r.dueInvalid);
   const withDate = filteredData.filter(r => r.hasAnyDate);
 
-  if (!columnMap.startDate) {
-    alerts.push({ type: 'warning', msg: 'No se detectó columna de fecha inicio ("Start date" o equivalente) en el CSV.' });
-  }
-  if (!columnMap.dueDate) {
-    alerts.push({ type: 'warning', msg: 'No se detectó columna de fecha de vencimiento en el CSV.' });
+  if (!isApi) {
+    if (!columnMap.startDate) alerts.push({ type: 'warning', msg: 'No se detectó columna de fecha inicio ("Start date" o equivalente) en el CSV.' });
+    if (!columnMap.dueDate)   alerts.push({ type: 'warning', msg: 'No se detectó columna de fecha de vencimiento en el CSV.' });
   }
   if (noDates.length) {
     alerts.push({ type: 'warning', msg: `${noDates.length} tarea(s) no tienen ninguna fecha y serán omitidas del export (según configuración).` });
   }
   if (allBad.length) {
     const sample = allBad.slice(0, 4).map(r => r.key).join(', ');
-    alerts.push({ type: 'danger', msg: `${allBad.length} tarea(s) tienen fechas en un formato no reconocido: ${sample}${allBad.length > 4 ? '…' : ''}` });
+    alerts.push({ type: 'danger', msg: `${allBad.length} tarea(s) tienen fechas en formato no reconocido: ${sample}${allBad.length > 4 ? '…' : ''}` });
   }
   if (withDate.length === 0 && filteredData.length > 0) {
     alerts.push({ type: 'danger', msg: 'Ninguna tarea filtrada tiene fechas válidas. No se generará ningún evento de calendario.' });
@@ -73,10 +100,7 @@ function updateAlerts() {
   `).join('');
 }
 
-/**
- * Show a one-off alert at the top of the results section
- * (also used before results are shown, e.g. for CSV validation errors).
- */
+/** One-off alert (e.g. validation errors before results are shown). */
 function showAlert(msg, type = 'warning') {
   const container = document.getElementById('alertsContainer');
   container.innerHTML = `
@@ -85,7 +109,6 @@ function showAlert(msg, type = 'warning') {
       <span>${msg}</span>
     </div>
   `;
-  // Make sure the results section is visible so the alert is readable
   document.getElementById('resultsSection').classList.remove('hidden');
 }
 
@@ -97,7 +120,7 @@ function switchTab(name) {
   if (name === 'export') renderExportPreview();
 }
 
-// ── File upload ───────────────────────────────────────────────────────
+// ── File upload (CSV mode) ────────────────────────────────────────────
 function initUpload() {
   const uploadZone = document.getElementById('uploadZone');
   const fileInput  = document.getElementById('fileInput');
@@ -126,8 +149,6 @@ function handleFile(file) {
   }
 
   showSpinner(true);
-
-  // Defer to allow the spinner to paint before the synchronous CSV parse
   setTimeout(() => {
     Papa.parse(file, {
       header: true,
@@ -151,37 +172,37 @@ function handleFile(file) {
 // ── Reset ─────────────────────────────────────────────────────────────
 function initReset() {
   document.getElementById('resetBtn').addEventListener('click', () => {
-    // Clear state
     rawData      = [];
     filteredData = [];
     columnMap    = {};
     currentPage  = 0;
 
-    // Destroy charts
     Object.values(chartInstances).forEach(c => c.destroy());
     chartInstances = {};
 
-    // Reset DOM
-    document.getElementById('alertsContainer').innerHTML  = '';
-    document.getElementById('statsGrid').innerHTML        = '';
-    document.getElementById('tableBody').innerHTML        = '';
-    document.getElementById('tablePagination').innerHTML  = '';
-    document.getElementById('tableWarn').innerHTML        = '';
-    document.getElementById('ganttChart').innerHTML       = '';
-    document.getElementById('exportPreview').innerHTML    = '';
+    ['alertsContainer','statsGrid','tableBody','tablePagination',
+     'tableWarn','ganttChart','exportPreview'].forEach(id => {
+      document.getElementById(id).innerHTML = '';
+    });
 
     document.getElementById('resultsSection').classList.add('hidden');
-    document.getElementById('uploadSection').style.display = '';
-    document.getElementById('resetBtn').style.display      = 'none';
-    document.getElementById('fileInput').value             = '';
+    document.getElementById('resetBtn').style.display = 'none';
+    document.getElementById('fileInput').value        = '';
 
+    // Clear Jira form status
+    const status = document.getElementById('jiraConnectStatus');
+    if (status) { status.classList.add('hidden'); status.textContent = ''; }
+    const progress = document.getElementById('jiraProgress');
+    if (progress) progress.classList.add('hidden');
+
+    // Go back to mode selector
+    selectMode(null);
     switchTab('filters');
   });
 }
 
 // ── Initialisation ────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  // Apply saved theme immediately
   applyTheme();
 
   document.getElementById('themeBtn').addEventListener('click', () => {

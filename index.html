@@ -31,9 +31,50 @@
 
 <main class="main">
 
-  <!-- ── Upload Section ─────────────────────────────────────────────── -->
-  <div class="section" id="uploadSection">
-    <div class="section-title">📁 Cargar archivo CSV de Jira</div>
+  <!-- ╔═══════════════════════════════════════════════════════════════╗ -->
+  <!-- ║  MODE SELECTOR                                               ║ -->
+  <!-- ╚═══════════════════════════════════════════════════════════════╝ -->
+  <div class="section" id="modeSelectorSection">
+    <div class="section-title" style="justify-content:center;font-size:1.1rem;margin-bottom:24px;">
+      ¿Cómo quieres cargar las tareas de Jira?
+    </div>
+
+    <div class="mode-cards">
+
+      <div class="mode-card" id="cardCsv">
+        <div class="mode-card-icon">📄</div>
+        <h3>Cargar CSV</h3>
+        <p>Exporta el archivo CSV desde Jira y súbelo aquí. Funciona directamente en el navegador, sin instalación.</p>
+        <div class="mode-card-tags">
+          <span class="mode-tag">Sin instalación</span>
+          <span class="mode-tag">Drag &amp; drop</span>
+        </div>
+        <button class="btn btn-primary" style="margin-top:16px;width:100%;">Seleccionar CSV</button>
+      </div>
+
+      <div class="mode-card" id="cardApi">
+        <div class="mode-card-icon">🔗</div>
+        <h3>Conectar con Jira</h3>
+        <p>Conecta directamente a la API de Jira con tu email y API Token. Requiere ejecutar el servidor local.</p>
+        <div class="mode-card-tags">
+          <span class="mode-tag">Requiere Node.js</span>
+          <span class="mode-tag">node server.js</span>
+        </div>
+        <button class="btn btn-primary" style="margin-top:16px;width:100%;">Conectar a Jira</button>
+      </div>
+
+    </div>
+  </div><!-- /#modeSelectorSection -->
+
+
+  <!-- ╔═══════════════════════════════════════════════════════════════╗ -->
+  <!-- ║  CSV MODE                                                    ║ -->
+  <!-- ╚═══════════════════════════════════════════════════════════════╝ -->
+  <div class="section hidden" id="uploadSection">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+      <div class="section-title" style="margin-bottom:0;">📄 Cargar archivo CSV de Jira</div>
+      <button class="btn btn-secondary btn-sm" onclick="selectMode(null)">← Cambiar modo</button>
+    </div>
 
     <div class="upload-zone" id="uploadZone">
       <div class="upload-icon">📄</div>
@@ -46,42 +87,28 @@
     </div>
     <input type="file" id="fileInput" accept=".csv">
 
-    <!-- Instructions (collapsed by default) -->
     <details style="margin-top:20px;">
       <summary style="cursor:pointer;font-weight:600;color:var(--primary);font-size:.9rem;">
-        ℹ️ ¿Cómo exportar desde Jira e importar a Google Calendar?
+        ℹ️ ¿Cómo exportar desde Jira?
       </summary>
       <div class="steps" style="margin-top:14px;">
         <div class="step">
           <div class="step-num">1</div>
           <h4>Exportar desde Jira</h4>
           <ol>
-            <li>Ve a tu proyecto en Jira</li>
-            <li>Abre la vista de lista o backlog</li>
-            <li>Aplica los filtros deseados</li>
+            <li>Ve a tu proyecto en Jira y abre la vista de Lista</li>
+            <li>Aplica los filtros que necesites</li>
             <li>Haz clic en <strong>Exportar → Exportar a CSV</strong></li>
-            <li>Selecciona "Todos los campos" para incluir fechas personalizadas</li>
+            <li>Selecciona <strong>"Todos los campos"</strong></li>
           </ol>
         </div>
         <div class="step">
           <div class="step-num">2</div>
-          <h4>Convertir con esta herramienta</h4>
-          <ol>
-            <li>Sube el CSV exportado de Jira</li>
-            <li>Aplica filtros si lo deseas</li>
-            <li>Revisa el resumen y los gráficos</li>
-            <li>Descarga el CSV para Google Calendar</li>
-          </ol>
-        </div>
-        <div class="step">
-          <div class="step-num">3</div>
           <h4>Importar a Google Calendar</h4>
           <ol>
             <li>Abre <a href="https://calendar.google.com" target="_blank">Google Calendar</a></li>
-            <li>Haz clic en ⚙️ → <strong>Configuración</strong></li>
-            <li>Menú izquierdo: <strong>Importar y exportar</strong></li>
-            <li>Selecciona el CSV descargado</li>
-            <li>Elige el calendario destino y haz clic en <strong>Importar</strong></li>
+            <li>⚙️ → <strong>Configuración → Importar y exportar</strong></li>
+            <li>Sube el CSV descargado y elige el calendario destino</li>
           </ol>
         </div>
       </div>
@@ -89,18 +116,104 @@
   </div><!-- /#uploadSection -->
 
 
-  <!-- ── Results (hidden until file loaded) ─────────────────────────── -->
+  <!-- ╔═══════════════════════════════════════════════════════════════╗ -->
+  <!-- ║  JIRA API MODE                                               ║ -->
+  <!-- ╚═══════════════════════════════════════════════════════════════╝ -->
+  <div class="section hidden" id="jiraSection">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px;">
+      <div class="section-title" style="margin-bottom:0;">🔗 Conectar con Jira API</div>
+      <button class="btn btn-secondary btn-sm" onclick="selectMode(null)">← Cambiar modo</button>
+    </div>
+
+    <div class="alert alert-warning" style="margin-bottom:20px;">
+      ⚠️ Esta opción requiere el servidor local. Abre una terminal en la carpeta del proyecto y ejecuta:
+      <code style="display:block;margin-top:6px;font-size:.88rem;background:var(--surface);padding:6px 10px;border-radius:4px;font-family:monospace;">
+        npm install &nbsp;&amp;&amp;&nbsp; node server.js
+      </code>
+      Luego abre <strong>http://localhost:3000</strong> en tu navegador.
+    </div>
+
+    <div class="jira-form">
+      <div class="jira-form-grid">
+
+        <div class="filter-group" style="grid-column:1/-1;">
+          <label>URL de Jira</label>
+          <input type="url" id="jiraBaseUrl"
+                 placeholder="https://tuempresa.atlassian.net"
+                 value="https://newryndem.atlassian.net">
+        </div>
+
+        <div class="filter-group">
+          <label>Email de Atlassian</label>
+          <input type="email" id="jiraEmail" placeholder="tu@email.com">
+        </div>
+
+        <div class="filter-group">
+          <label>
+            API Token
+            <a href="https://id.atlassian.com/manage-profile/security/api-tokens"
+               target="_blank" style="font-size:.75rem;margin-left:6px;font-weight:400;">
+              Generar token ↗
+            </a>
+          </label>
+          <div style="position:relative;">
+            <input type="password" id="jiraToken"
+                   placeholder="Pega aquí tu API Token"
+                   style="padding-right:80px;">
+            <button class="btn-show-token" id="tokenToggleBtn"
+                    onclick="toggleTokenVisibility()">Mostrar</button>
+          </div>
+        </div>
+
+      </div><!-- /.jira-form-grid -->
+
+      <div class="filter-group" style="margin-top:14px;">
+        <label>Consulta JQL</label>
+        <input type="text" id="jiraJql"
+               placeholder="project = PESS ORDER BY created DESC"
+               style="font-family:monospace;">
+        <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
+          <span style="font-size:.78rem;color:var(--text2);">Ejemplos:</span>
+          <button class="jql-chip" onclick="insertJql('project = PESS ORDER BY created DESC')">project = PESS</button>
+          <button class="jql-chip" onclick="insertJql('assignee = currentUser() ORDER BY duedate ASC')">Mis tareas</button>
+          <button class="jql-chip" onclick="insertJql('project = PESS AND status != Done ORDER BY duedate ASC')">Pendientes</button>
+          <button class="jql-chip" onclick="insertJql('project = PESS AND sprint in openSprints()')">Sprint activo</button>
+        </div>
+      </div>
+
+      <div style="margin-top:20px;">
+        <button class="btn btn-primary" id="jiraConnectBtn">
+          🔍 Conectar y cargar tareas
+        </button>
+      </div>
+
+      <!-- Status -->
+      <div class="alert hidden" id="jiraConnectStatus" style="margin-top:14px;"></div>
+
+      <!-- Progress -->
+      <div id="jiraProgress" class="hidden" style="margin-top:14px;">
+        <div style="display:flex;justify-content:space-between;font-size:.82rem;color:var(--text2);margin-bottom:6px;">
+          <span id="jiraProgressText">Cargando...</span>
+          <span id="jiraProgressCount"></span>
+        </div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar" id="jiraProgressBar" style="width:0%"></div>
+        </div>
+      </div>
+
+    </div><!-- /.jira-form -->
+  </div><!-- /#jiraSection -->
+
+
+  <!-- ╔═══════════════════════════════════════════════════════════════╗ -->
+  <!-- ║  RESULTS — shared by both modes                             ║ -->
+  <!-- ╚═══════════════════════════════════════════════════════════════╝ -->
   <div id="resultsSection" class="hidden">
 
-    <!-- Alert banners -->
     <div id="alertsContainer"></div>
-
-    <!-- Stats cards -->
     <div class="stats-grid" id="statsGrid"></div>
 
-    <!-- Tabbed panel -->
     <div class="section" style="padding-bottom:0;">
-
       <div class="tabs">
         <button class="tab active" data-tab="filters">🔍 Filtros</button>
         <button class="tab"        data-tab="table"  >📋 Tabla resumen</button>
@@ -109,7 +222,7 @@
         <button class="tab"        data-tab="export" >⬇️ Exportar</button>
       </div>
 
-      <!-- ─ FILTERS tab ─────────────────────────────────────────────── -->
+      <!-- FILTERS -->
       <div class="tab-content active" id="tab-filters" style="padding-bottom:20px;">
         <div class="filters-grid" id="filtersGrid"></div>
         <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
@@ -118,21 +231,15 @@
         </div>
       </div>
 
-      <!-- ─ TABLE tab ───────────────────────────────────────────────── -->
+      <!-- TABLE -->
       <div class="tab-content" id="tab-table" style="padding-bottom:20px;">
         <div id="tableWarn" style="margin-bottom:10px;"></div>
         <div class="table-wrap">
           <table id="summaryTable">
             <thead>
               <tr>
-                <th>Clave</th>
-                <th>Título</th>
-                <th>Inicio</th>
-                <th>Fin</th>
-                <th>Estado</th>
-                <th>Prioridad</th>
-                <th>Proyecto</th>
-                <th>Asignado a</th>
+                <th>Clave</th><th>Título</th><th>Inicio</th><th>Fin</th>
+                <th>Estado</th><th>Prioridad</th><th>Proyecto</th><th>Asignado a</th>
               </tr>
             </thead>
             <tbody id="tableBody"></tbody>
@@ -141,62 +248,31 @@
         <div id="tablePagination" style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;"></div>
       </div>
 
-      <!-- ─ CHARTS tab ──────────────────────────────────────────────── -->
+      <!-- CHARTS -->
       <div class="tab-content" id="tab-charts" style="padding-bottom:20px;">
         <div class="charts-grid">
-          <div class="chart-card">
-            <h4>📁 Por proyecto</h4>
-            <div class="chart-container"><canvas id="chartProject"></canvas></div>
-          </div>
-          <div class="chart-card">
-            <h4>🔄 Por estado</h4>
-            <div class="chart-container"><canvas id="chartStatus"></canvas></div>
-          </div>
-          <div class="chart-card">
-            <h4>⚡ Por prioridad</h4>
-            <div class="chart-container"><canvas id="chartPriority"></canvas></div>
-          </div>
-          <div class="chart-card">
-            <h4>👤 Por asignado (top 8)</h4>
-            <div class="chart-container"><canvas id="chartAssignee"></canvas></div>
-          </div>
+          <div class="chart-card"><h4>📁 Por proyecto</h4><div class="chart-container"><canvas id="chartProject"></canvas></div></div>
+          <div class="chart-card"><h4>🔄 Por estado</h4><div class="chart-container"><canvas id="chartStatus"></canvas></div></div>
+          <div class="chart-card"><h4>⚡ Por prioridad</h4><div class="chart-container"><canvas id="chartPriority"></canvas></div></div>
+          <div class="chart-card"><h4>👤 Por asignado (top 8)</h4><div class="chart-container"><canvas id="chartAssignee"></canvas></div></div>
         </div>
         <div class="chart-card" style="margin-top:20px;">
           <h4>📅 Timeline de tareas</h4>
-          <div class="timeline-wrap">
-            <div id="ganttChart"></div>
-          </div>
+          <div class="timeline-wrap"><div id="ganttChart"></div></div>
         </div>
       </div>
 
-      <!-- ─ OPTIONS tab ─────────────────────────────────────────────── -->
+      <!-- OPTIONS -->
       <div class="tab-content" id="tab-options" style="padding-bottom:20px;">
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:24px;">
-
           <div>
             <div class="section-title">📝 Contenido del evento</div>
-            <label class="option-item">
-              <input type="checkbox" id="optIncludeDesc" checked>
-              <label for="optIncludeDesc">Incluir descripción completa</label>
-            </label>
-            <label class="option-item">
-              <input type="checkbox" id="optIncludeLink" checked>
-              <label for="optIncludeLink">Incluir enlace a Jira</label>
-            </label>
-            <label class="option-item">
-              <input type="checkbox" id="optIncludeStatus" checked>
-              <label for="optIncludeStatus">Incluir estado</label>
-            </label>
-            <label class="option-item">
-              <input type="checkbox" id="optIncludePriority" checked>
-              <label for="optIncludePriority">Incluir prioridad</label>
-            </label>
-            <label class="option-item">
-              <input type="checkbox" id="optIncludeAssignee" checked>
-              <label for="optIncludeAssignee">Incluir persona asignada</label>
-            </label>
+            <div class="option-item"><input type="checkbox" id="optIncludeDesc" checked><label for="optIncludeDesc">Incluir descripción completa</label></div>
+            <div class="option-item"><input type="checkbox" id="optIncludeLink" checked><label for="optIncludeLink">Incluir enlace a Jira</label></div>
+            <div class="option-item"><input type="checkbox" id="optIncludeStatus" checked><label for="optIncludeStatus">Incluir estado</label></div>
+            <div class="option-item"><input type="checkbox" id="optIncludePriority" checked><label for="optIncludePriority">Incluir prioridad</label></div>
+            <div class="option-item"><input type="checkbox" id="optIncludeAssignee" checked><label for="optIncludeAssignee">Incluir persona asignada</label></div>
           </div>
-
           <div>
             <div class="section-title">🏷️ Formato del título</div>
             <div class="radio-group">
@@ -206,7 +282,6 @@
               <label><input type="radio" name="titleFormat" value="key_only"> Solo clave</label>
             </div>
           </div>
-
           <div>
             <div class="section-title">📆 Tipo de evento</div>
             <div class="radio-group">
@@ -214,7 +289,6 @@
               <label><input type="radio" name="eventType" value="timed"> Con hora (si está en Jira)</label>
             </div>
           </div>
-
           <div>
             <div class="section-title">🔢 Cuando falta una fecha</div>
             <div class="radio-group">
@@ -223,11 +297,10 @@
               <label><input type="radio" name="missingDate" value="today"> Usar la fecha de hoy como faltante</label>
             </div>
           </div>
-
         </div>
-      </div><!-- /#tab-options -->
+      </div>
 
-      <!-- ─ EXPORT tab ──────────────────────────────────────────────── -->
+      <!-- EXPORT -->
       <div class="tab-content" id="tab-export" style="padding-bottom:20px;">
         <div class="export-actions">
           <button class="btn btn-success"   id="exportAllBtn">⬇️ Descargar todo en un CSV</button>
@@ -241,16 +314,16 @@
         <div id="exportPreview" style="margin-top:16px;"></div>
       </div>
 
-    </div><!-- /.section (tabs) -->
+    </div><!-- /.section tabs -->
   </div><!-- /#resultsSection -->
 
 </main>
 
-<!-- ── Third-party libraries ──────────────────────────────────────────── -->
+<!-- ── Third-party libraries ─────────────────────────────────────────── -->
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
-<!-- ── Application modules (order matters — config first, app last) ─── -->
+<!-- ── Application modules (config first, app last) ─────────────────── -->
 <script src="js/config.js"></script>
 <script src="js/utils.js"></script>
 <script src="js/parser.js"></script>
@@ -258,6 +331,7 @@
 <script src="js/table.js"></script>
 <script src="js/charts.js"></script>
 <script src="js/export.js"></script>
+<script src="js/jira-api.js"></script>
 <script src="js/app.js"></script>
 
 </body>

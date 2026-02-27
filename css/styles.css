@@ -193,6 +193,53 @@ tr:hover td { background: var(--surface2); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text2); }
 
+/* ========== MODE SELECTOR ========== */
+.mode-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+.mode-card {
+  border: 2px solid var(--border); border-radius: var(--radius);
+  padding: 28px 24px; background: var(--surface2);
+  transition: border-color var(--transition), box-shadow var(--transition);
+  display: flex; flex-direction: column;
+}
+.mode-card:hover { border-color: var(--primary); box-shadow: 0 4px 20px rgba(0,82,204,.12); }
+.mode-card-icon  { font-size: 2.4rem; margin-bottom: 12px; }
+.mode-card h3    { font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; }
+.mode-card p     { font-size: .875rem; color: var(--text2); line-height: 1.5; flex: 1; }
+.mode-card-tags  { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+.mode-tag {
+  font-size: .75rem; font-weight: 600; padding: 3px 10px;
+  border-radius: 20px; background: var(--primary-light); color: var(--primary);
+}
+
+/* ========== JIRA FORM ========== */
+.jira-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+.btn-show-token {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 4px;
+  padding: 3px 10px; font-size: .75rem; font-weight: 600; cursor: pointer; color: var(--text2);
+}
+.btn-show-token:hover { background: var(--border); }
+
+/* ========== JQL CHIPS ========== */
+.jql-chip {
+  font-size: .78rem; font-weight: 600; padding: 4px 10px; border-radius: 20px;
+  border: 1px solid var(--border); background: var(--surface2); color: var(--text2);
+  cursor: pointer; transition: all var(--transition);
+}
+.jql-chip:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+
+/* ========== PROGRESS BAR ========== */
+.progress-bar-wrap { background: var(--surface2); border-radius: 20px; height: 10px; overflow: hidden; border: 1px solid var(--border); }
+.progress-bar      { height: 100%; border-radius: 20px; background: var(--primary); transition: width .3s ease; }
+
 /* ========== RESPONSIVE ========== */
 @media (max-width: 640px) {
   .app-header { padding: 10px 14px; }

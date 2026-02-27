@@ -109,10 +109,24 @@ function processCSV(data, headers) {
   });
 
   // ── Build UI ──────────────────────────────────────────────────────
-  buildFilters();
-  restoreFilters();       // Reapply saved filters (calls applyFilters internally)
+  loadRawData(rawData);
+}
 
-  document.getElementById('uploadSection').style.display = 'none';
+/**
+ * Shared entry point used by BOTH the CSV parser and the Jira API mode.
+ * Takes an already-mapped rows array, populates rawData, and builds the UI.
+ *
+ * @param {Object[]} rows - Normalized row objects.
+ */
+function loadRawData(rows) {
+  rawData = rows;
+
+  buildFilters();
+  restoreFilters(); // applies filters and renders table/charts
+
+  document.getElementById('modeSelectorSection').classList.add('hidden');
+  document.getElementById('uploadSection').classList.add('hidden');
+  document.getElementById('jiraSection').classList.add('hidden');
   document.getElementById('resultsSection').classList.remove('hidden');
   document.getElementById('resetBtn').style.display = '';
 }
