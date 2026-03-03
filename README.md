@@ -1,97 +1,187 @@
 # JiraCsvToGoogleCalendar
 
-Herramienta web para convertir exportaciones CSV de Jira a eventos de Google Calendar, con filtros, gráficos y descarga directa.
+Herramienta web para convertir tareas de Jira en eventos de Google Calendar.
+Soporta dos modos de carga: **CSV exportado desde Jira** o **conexión directa a la API de Jira**.
 
 ---
 
-## ¿Qué hace?
+## Modos de uso
 
-- Convierte el CSV exportado de Jira en un archivo listo para importar en Google Calendar
-- Detecta automáticamente las columnas en español e inglés (incluyendo campos personalizados como `Campo personalizado (Start date)`)
-- Permite filtrar tareas antes de exportar (proyecto, estado, prioridad, persona asignada, rango de fechas)
-- Muestra gráficos de distribución y un timeline Gantt de las tareas
-- Soporta exportación en un solo archivo o separado por proyecto / estado
-- Tema claro y oscuro
+| Modo | Requisito | Cuándo usarlo |
+|---|---|---|
+| **CSV** | Solo navegador | Tienes un archivo exportado de Jira |
+| **Jira API** | Node.js instalado | Quieres consultar tareas en tiempo real con JQL |
 
 ---
 
-## Paso a paso
+## Requisitos previos
+
+- **Modo CSV**: ninguno — abre `index.html` directo en el navegador.
+- **Modo API**: [Node.js](https://nodejs.org/) instalado (v16 o superior).
+
+---
+
+## Ejecución
+
+### Modo CSV (sin servidor)
+
+Abre el archivo `index.html` directamente en tu navegador.
+No requiere instalación, servidor ni conexión a internet.
+
+### Modo API (con servidor local)
+
+1. Haz doble clic en **`iniciar.bat`**
+2. El script:
+   - Verifica que Node.js esté instalado
+   - Libera el puerto 3000 si estaba ocupado
+   - Instala las dependencias automáticamente (solo la primera vez)
+   - Levanta el servidor en `http://localhost:3000`
+   - Abre el navegador automáticamente
+3. Para cerrar, cierra la ventana del terminal o presiona `Ctrl+C`
+
+> **Nota:** El servidor actúa como proxy hacia la API de Jira para evitar bloqueos CORS. Las credenciales nunca salen de tu máquina local.
+
+---
+
+## Paso a paso — Modo CSV
 
 ### 1. Exportar desde Jira
 
-1. Ve a tu proyecto en Jira y abre la vista de **Lista** o **Backlog**
+1. Ve a tu proyecto en Jira → vista **Lista** o **Backlog**
 2. Aplica los filtros que necesites (sprint, épica, asignado, etc.)
 3. Haz clic en **Exportar → Exportar a CSV**
-4. Selecciona **"Todos los campos"** para asegurarte de incluir las fechas personalizadas (`Start date`, `Fecha de vencimiento`)
+4. Selecciona **"Todos los campos"** para incluir las fechas personalizadas
 5. Descarga el archivo `.csv` generado
 
-> **Nota:** Si tu Jira está en español, las fechas vendrán en formato `DD/MMM/AA` (ej. `25/feb/26 12:00 AM`). La herramienta las reconoce automáticamente.
+> Si tu Jira está en español, las fechas vendrán en formato `DD/MMM/AA` (ej. `25/feb/26 12:00 AM`). La herramienta las reconoce automáticamente.
+
+### 2. Cargar el CSV
+
+- En la pantalla de inicio selecciona **"Cargar CSV"**
+- Arrastra el archivo al área de carga o haz clic en **"Seleccionar archivo"**
+- La herramienta detecta las columnas automáticamente
 
 ---
 
-### 2. Abrir la herramienta
+## Paso a paso — Modo API
 
-Abre el archivo `index.html` directamente en tu navegador (no requiere servidor ni instalación).
+### 1. Obtener un API Token de Jira
+
+1. Ve a [id.atlassian.com/manage-profile/security/api-tokens](https://id.atlassian.com/manage-profile/security/api-tokens)
+2. Haz clic en **"Crear token de API"**
+3. Dale un nombre descriptivo (ej. `jira-calendar-tool`) y copia el token generado
+
+### 2. Conectar desde la herramienta
+
+1. En la pantalla de inicio selecciona **"Conectar con Jira API"**
+2. Completa los campos:
+
+| Campo | Ejemplo |
+|---|---|
+| URL de Jira | `https://tu-empresa.atlassian.net` |
+| Email | `tu@correo.com` |
+| API Token | El token generado en el paso anterior |
+| JQL | `project = PESS ORDER BY "cf[10015]" ASC` |
+
+3. Haz clic en **"Conectar y cargar"**
+4. El mensaje de estado mostrará cuántas tareas se cargaron y qué campos de fecha se detectaron:
+   ```
+   ✅ 7 tarea(s) cargadas — inicio: 7/7 [customfield_10015] · fin: 7/7 [duedate (built-in)]
+   ```
+
+### 3. Re-consultar con otro JQL
+
+Una vez cargados los datos, aparece una barra con el JQL activo.
+Edítalo y presiona **"Actualizar"** para hacer una nueva consulta sin volver al inicio.
 
 ---
 
-### 3. Cargar el CSV
+## Filtros
 
-- Arrastra el archivo CSV al área de carga, o haz clic en **"Seleccionar archivo"**
-- La herramienta detecta las columnas automáticamente y muestra un resumen
+El panel de filtros tiene tres secciones:
 
----
+### Búsqueda rápida
+| Filtro | Descripción |
+|---|---|
+| Buscar | Texto libre sobre clave o resumen |
+| Solo con fechas | Todas / Con inicio y fin / Con al menos una / Sin fechas |
 
-### 4. Revisar y filtrar (opcional)
-
-En la pestaña **Filtros** puedes acotar los resultados por:
-
+### Categorías
 | Filtro | Descripción |
 |---|---|
 | Proyecto(s) | Selección múltiple |
 | Estado(s) | Ej. En curso, Tareas por hacer, Hecho |
 | Persona asignada | Selección múltiple |
 | Prioridad | High, Medium, Low… |
-| Rango de fechas | Inicio desde/hasta, Fin desde/hasta |
-| Solo con fechas | Todas / Con inicio y fin / Con al menos una / Sin fechas |
-| Búsqueda | Texto libre sobre clave o resumen |
 
-Haz clic en **"Aplicar filtros"** para actualizar la vista. Los filtros se guardan automáticamente en el navegador para la próxima sesión.
+### Rango de fechas
+| Filtro | Descripción |
+|---|---|
+| Inicio desde / hasta | Filtra por fecha de inicio |
+| Fin desde / hasta | Filtra por fecha de vencimiento |
 
----
-
-### 5. Revisar los resultados
-
-- **Tabla resumen** — lista paginada con clave (link a Jira), título, fechas, estado, prioridad, proyecto y asignado
-- **Gráficos** — distribución por proyecto, estado, prioridad y persona asignada + timeline Gantt
-- Las tareas con fechas en formato no reconocido aparecen marcadas con ⚠
+Haz clic en **"Aplicar filtros"** para actualizar la vista.
+Los filtros se guardan en el navegador y se restauran automáticamente en la próxima sesión.
 
 ---
 
-### 6. Configurar opciones (opcional)
+## Resultados
 
-En la pestaña **Opciones** puedes ajustar:
+### Tabla resumen
 
-- **Formato del título**: `[CLAVE] Resumen` / Solo resumen / `[Proyecto - CLAVE] Resumen` / Solo clave
-- **Contenido del evento**: incluir o excluir descripción, enlace a Jira, estado, prioridad y persona asignada
-- **Tipo de evento**: todo el día (recomendado) o con hora
-- **Cuando falta una fecha**: omitir la tarea / usar la fecha disponible para inicio y fin / usar la fecha de hoy
+Lista paginada con:
+- Clave (enlace directo a Jira), título, fecha inicio, fecha fin
+- Estado, prioridad, proyecto y persona asignada
+- Indicador ⚠ para fechas en formato no reconocido
+
+### Gráficos y Timeline
+
+La pestaña **Gráficos** incluye:
+
+- **Distribución por proyecto** (dona)
+- **Distribución por estado** (barras)
+- **Distribución por prioridad** (dona con colores semánticos)
+- **Top 8 asignados** (barras)
+- **Timeline Gantt** — barras horizontales por fecha de inicio y fin, coloreadas por proyecto
+
+#### Toggles de proyecto en el Gantt
+
+Encima del Gantt aparece un chip por cada proyecto con su color y conteo de tareas.
+Haz clic en un chip para **ocultar** ese proyecto del timeline; haz clic de nuevo para **mostrarlo**.
+Los colores se mantienen estables aunque cambies los filtros.
 
 ---
 
-### 7. Descargar el CSV
+## Opciones de exportación
+
+En la pestaña **Opciones** puedes configurar:
+
+| Opción | Valores disponibles |
+|---|---|
+| Formato del título | `[CLAVE] Resumen` / Solo resumen / `[Proyecto - CLAVE] Resumen` / Solo clave |
+| Descripción | Incluir / Excluir |
+| Enlace a Jira | Incluir / Excluir |
+| Estado / Prioridad / Asignado | Incluir / Excluir |
+| Tipo de evento | Todo el día (recomendado) / Con hora |
+| Cuando falta una fecha | Omitir tarea / Usar la fecha disponible / Usar la fecha de hoy |
+
+> El default de **"Cuando falta una fecha"** es **"Usar la fecha disponible"**, igual que el modo CSV, para no perder tareas que solo tienen fecha de fin.
+
+---
+
+## Descargar el CSV de Calendar
 
 En la pestaña **Exportar**:
 
 | Botón | Resultado |
 |---|---|
 | Descargar todo en un CSV | Un archivo único con todos los eventos |
-| Un CSV por proyecto | Un archivo por cada proyecto |
-| Un CSV por estado | Un archivo por cada estado |
+| Un CSV por proyecto | Un archivo `.csv` por cada proyecto |
+| Un CSV por estado | Un archivo `.csv` por cada estado |
 
 ---
 
-### 8. Importar a Google Calendar
+## Importar a Google Calendar
 
 1. Abre [Google Calendar](https://calendar.google.com)
 2. Haz clic en ⚙️ → **Configuración**
@@ -101,25 +191,36 @@ En la pestaña **Exportar**:
 
 ---
 
-## Columnas que usa del CSV de Jira
+## Columnas que detecta del CSV de Jira
 
-| Campo | Columnas que detecta (en orden de prioridad) |
+| Campo | Columnas detectadas (en orden de prioridad) |
 |---|---|
-| Clave | `Clave de incidencia`, `Issue Key` |
+| Clave | `Clave de incidencia`, `Issue Key`, `Key` |
 | Resumen | `Resumen`, `Summary` |
 | Estado | `Estado`, `Status` |
 | Prioridad | `Prioridad`, `Priority` |
 | Persona asignada | `Persona asignada`, `Assignee` |
-| Proyecto | `Nombre del proyecto`, `Project Name` |
-| Fecha inicio | `Campo personalizado (Start date)`, `Campo personalizado (Planned start)`, `Start date` |
-| Fecha fin | `Fecha de vencimiento`, `Due Date`, `Campo personalizado (Planned end)` |
+| Proyecto | `Nombre del proyecto`, `Project Name`, `Proyecto` |
+| Fecha inicio | `Campo personalizado (Start date)`, `Campo personalizado (Planned start)`, `Start date`, `Fecha de inicio` |
+| Fecha fin | `Fecha de vencimiento`, `Due Date`, `Campo personalizado (Planned end)`, `Campo personalizado (End Date)` |
 | Descripción | `Descripción`, `Description` |
+
+---
+
+## Campos que solicita a la API de Jira
+
+Además de los campos estándar (`summary`, `status`, `priority`, `assignee`, `project`, `description`, `duedate`), la herramienta:
+
+- Detecta automáticamente campos personalizados de fecha de inicio y fin consultando `/rest/api/3/field`
+- Siempre solicita `customfield_10015` (campo estándar de "Start date" en Jira Plans / Timeline)
+- Muestra en el mensaje de estado qué campo ID se usó para inicio y fin
 
 ---
 
 ## Tecnologías
 
-- HTML / CSS / JavaScript vanilla
+- HTML / CSS / JavaScript vanilla (frontend)
+- [Node.js](https://nodejs.org/) + [Express](https://expressjs.com/) (proxy local para API Jira — solo modo API)
 - [PapaParse](https://www.papaparse.com/) — parsing de CSV
-- [Chart.js](https://www.chartjs.org/) — gráficos
-- Sin dependencias de servidor, sin build tools
+- [Chart.js](https://www.chartjs.org/) — gráficos y timeline
+- Sin frameworks, sin build tools, sin dependencias en el cliente
