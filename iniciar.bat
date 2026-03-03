@@ -1,31 +1,59 @@
 @echo off
+chcp 65001 >nul
+title Jira a Google Calendar - Servidor Local
 cd /d "%~dp0"
 
-REM ── Detener servidor anterior si está corriendo ───────────────────────
-echo Deteniendo servidor anterior (si existe)...
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr "LISTENING" ^| findstr ":3000 " 2^>nul') do (
-  taskkill /F /PID %%a >nul 2>&1
-)
-timeout /t 1 /nobreak >nul
+echo.
+echo =========================================================
+echo        JIRA TO GOOGLE CALENDAR - LAUNCHER
+echo =========================================================
+echo.
 
-REM ── Instalar dependencias si no existen ───────────────────────────────
-if not exist "node_modules" (
-    echo Instalando dependencias por primera vez...
-    npm install
+:: 1. Verificar Node.js
+where node >nul 2>nul
+if errorlevel 1 (
+    echo [ERROR] Node.js no esta instalado o no esta en el PATH.
+    echo Instala Node.js desde https://nodejs.org/ e intenta de nuevo.
     echo.
+    pause
+    exit /b 1
 )
 
-REM ── Levantar el servidor en una ventana separada ──────────────────────
-echo Iniciando servidor...
-start "Jira ^→ Google Calendar | Servidor" cmd /k "node server.js"
+:: 2. Matar procesos anteriores en puerto 3000
+echo [1/4] Comprobando puerto 3000...
+for /f "tokens=5" %%p in ('netstat -ano 2^>nul ^| find "LISTEN" ^| find ":3000"') do (
+    taskkill /F /PID %%p >nul 2>&1
+)
 
-REM ── Esperar que el servidor arranque ─────────────────────────────────
-timeout /t 2 /nobreak >nul
+:: 3. Instalar dependencias si faltan
+if not exist "node_modules\" (
+    echo [2/4] Instalando dependencias necesarias...
+    call npm install
+    if errorlevel 1 (
+        echo [ERROR] Fallo al instalar dependencias.
+        pause
+        exit /b 1
+    )
+) else (
+    echo [2/4] Dependencias OK.
+)
 
-REM ── Abrir el navegador ────────────────────────────────────────────────
-echo Abriendo http://localhost:3000 ...
-start http://localhost:3000
+:: 4. Preparar y lanzar
+echo [3/4] Preparando aplicacion...
+echo [4/4] Abriendo navegador...
+
+start "" http://localhost:3000
 
 echo.
-echo Servidor corriendo en http://localhost:3000
-echo Para detenerlo, cierra la ventana "Servidor".
+echo =========================================================
+echo    Servidor:   ONLINE
+echo    URL:        http://localhost:3000
+echo.
+echo    Mantenga esta ventana abierta.
+echo    Para salir, cierre esta ventana o presione Ctrl+C.
+echo =========================================================
+echo.
+
+node server.js
+
+pause

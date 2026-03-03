@@ -2,6 +2,19 @@
 // CHART & TIMELINE RENDERING
 // =====================================================================
 
+// ── Gantt project visibility state ────────────────────────────────────
+let ganttHiddenProjects = new Set();
+
+function toggleGanttProject(project) {
+  if (ganttHiddenProjects.has(project)) {
+    ganttHiddenProjects.delete(project);
+  } else {
+    ganttHiddenProjects.add(project);
+  }
+  renderGantt();
+}
+window.toggleGanttProject = toggleGanttProject;
+
 /**
  * Destroy and rebuild all four Chart.js charts using current `filteredData`.
  * Respects the dark/light theme via CSS variables.
@@ -91,17 +104,45 @@ function rebuildCharts() {
 }
 
 /**
- * Render a simple CSS-based Gantt chart showing the first 40 tasks
- * that have at least one date.
+ * Render a CSS-based Gantt chart with per-project show/hide toggles.
+ * Shows up to 40 visible tasks that have at least one date.
  */
 function renderGantt() {
   const el = document.getElementById('ganttChart');
   if (!el) return;
 
-  const withDates = filteredData.filter(r => r.hasAnyDate).slice(0, 40);
+  const allWithDates = filteredData.filter(r => r.hasAnyDate);
+
+  if (!allWithDates.length) {
+    el.innerHTML = '<p style="color:var(--text2);font-size:.85rem;padding:10px;">No hay tareas con fechas para mostrar.</p>';
+    return;
+  }
+
+  // Assign a consistent color per project (from ALL tasks so colors don't shift)
+  const allProjects  = unique(allWithDates.map(r => r.project));
+  const projectColor = {};
+  allProjects.forEach((p, i) => { projectColor[p] = COLORS[i % COLORS.length]; });
+
+  // Build toggle chips (one per project)
+  const togglesHtml = allProjects.map(p => {
+    const color    = projectColor[p];
+    const isHidden = ganttHiddenProjects.has(p);
+    const count    = allWithDates.filter(r => r.project === p).length;
+    return `<button class="gantt-proj-toggle${isHidden ? ' off' : ''}"
+      style="--pc:${color};"
+      onclick="toggleGanttProject(${JSON.stringify(p)})"
+      title="${isHidden ? 'Mostrar' : 'Ocultar'} — ${esc(p)}"
+    ><span class="gantt-proj-dot"></span>${esc(p)}<span class="gantt-proj-count">${count}</span></button>`;
+  }).join('');
+
+  // Filter to visible projects only, then cap at 40
+  const visible   = allWithDates.filter(r => !ganttHiddenProjects.has(r.project));
+  const withDates = visible.slice(0, 40);
 
   if (!withDates.length) {
-    el.innerHTML = '<p style="color:var(--text2);font-size:.85rem;padding:10px;">No hay tareas con fechas para mostrar.</p>';
+    el.innerHTML = `
+      <div class="gantt-toggles">${togglesHtml}</div>
+      <p style="color:var(--text2);font-size:.85rem;padding:10px;">No hay proyectos visibles. Activa alguno arriba.</p>`;
     return;
   }
 
@@ -117,11 +158,6 @@ function renderGantt() {
     const R = pctLeft(e || s);
     return Math.max(0.5, R - L);
   };
-
-  // Assign a color per project
-  const projects     = unique(withDates.map(r => r.project));
-  const projectColor = {};
-  projects.forEach((p, i) => { projectColor[p] = COLORS[i % COLORS.length]; });
 
   const rows = withDates.map(r => {
     const L     = pctLeft(r.startDate || r.dueDate);
@@ -141,16 +177,16 @@ function renderGantt() {
 
   const minDate = new Date(minMs);
   const maxDate = new Date(maxMs);
-  const total   = filteredData.filter(r => r.hasAnyDate).length;
 
   el.innerHTML = `
+    <div class="gantt-toggles">${togglesHtml}</div>
     <div class="gantt">${rows}</div>
     <div class="gantt-axis">
       <span>${fmtDisplay(minDate)}</span>
       <span>${fmtDisplay(maxDate)}</span>
     </div>
-    ${withDates.length < total
-      ? `<p style="color:var(--text2);font-size:.78rem;margin-top:8px;">Mostrando ${withDates.length} de ${total} tareas con fechas.</p>`
+    ${withDates.length < visible.length
+      ? `<p style="color:var(--text2);font-size:.78rem;margin-top:8px;">Mostrando ${withDates.length} de ${visible.length} tareas con fechas.</p>`
       : ''}
   `;
 }

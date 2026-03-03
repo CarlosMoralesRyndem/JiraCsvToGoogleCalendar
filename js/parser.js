@@ -121,6 +121,7 @@ function processCSV(data, headers) {
  */
 function loadRawData(rows) {
   rawData = rows;
+  ganttHiddenProjects = new Set(); // reset visibility on new data source
 
   buildFilters();
   restoreFilters(); // applies filters and renders table/charts

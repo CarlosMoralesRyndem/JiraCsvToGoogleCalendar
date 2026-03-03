@@ -11,10 +11,10 @@
 function adfToText(node) {
   if (!node) return '';
   if (typeof node === 'string') return node;
-  if (node.type === 'text')      return node.text || '';
+  if (node.type === 'text') return node.text || '';
   if (node.type === 'hardBreak') return '\n';
-  if (node.type === 'rule')      return '\n---\n';
-  if (node.type === 'mention')   return `@${node.attrs?.text || ''}`;
+  if (node.type === 'rule') return '\n---\n';
+  if (node.type === 'mention') return `@${node.attrs?.text || ''}`;
   if (node.type === 'inlineCard' || node.type === 'blockCard') {
     return node.attrs?.url || '';
   }
@@ -31,19 +31,33 @@ const START_DATE_ALIASES = [
   'begin date', 'start_date', 'fecha inicio replanificada',
 ];
 
+const DUE_DATE_ALIASES = [
+  'planned end', 'target end', 'end date', 'actual end',
+  'fecha fin', 'fecha vencimiento', 'fecha de vencimiento',
+  'due date', 'finish date', 'fecha fin replanificada',
+];
+
 /**
- * From the list of all Jira fields, find the ID of the "Start date" custom field.
- * Returns the field ID (e.g. "customfield_10015") or null if not found.
+ * Find a field ID by name aliases.
+ * @param {Object[]} fields   - All fields from /rest/api/3/field
+ * @param {string[]} aliases  - Name aliases to look for
+ * @param {boolean}  customOnly - When true, skip non-custom (built-in) fields
  */
-function findStartDateFieldId(fields) {
+function findFieldId(fields, aliases, customOnly = true) {
   for (const f of fields) {
+    if (customOnly && !f.custom) continue;
     const name = (f.name || '').toLowerCase();
-    if (START_DATE_ALIASES.some(a => name === a || name.includes(a))) {
+    if (aliases.some(a => name === a || name.includes(a))) {
       return f.id;
     }
   }
   return null;
 }
+
+// Start date: search ALL fields (newer Jira Cloud has a built-in "Start date" with custom=false)
+const findStartDateFieldId = fields => findFieldId(fields, START_DATE_ALIASES, false);
+// Due date: custom fields only (avoid matching the built-in "duedate" standard field)
+const findDueDateFieldId = fields => findFieldId(fields, DUE_DATE_ALIASES, true);
 
 // ── Issue mapping ─────────────────────────────────────────────────────
 /**
@@ -55,14 +69,17 @@ function findStartDateFieldId(fields) {
  * @param {string|null} startFieldId - Custom field ID for "Start date".
  * @returns {Object[]}
  */
-function mapIssuesToRawData(issues, startFieldId) {
+function mapIssuesToRawData(issues, startFieldId, dueDateFieldId = null) {
   return issues.map((issue, i) => {
     const f = issue.fields || {};
 
-    const startRaw = startFieldId ? (f[startFieldId] || '') : '';
-    const dueRaw   = f.duedate || '';
+    // Custom/built-in start field → built-in startDate → known Jira Plans field ID
+    const startRaw = (startFieldId ? (f[startFieldId] || '') : '')
+      || f.startDate || f['customfield_10015'] || '';
+    // Standard duedate first; fall back to custom due date field if empty
+    const dueRaw = f.duedate || (dueDateFieldId ? (f[dueDateFieldId] || '') : '') || '';
     const startDate = parseDate(startRaw);
-    const dueDate   = parseDate(dueRaw);
+    const dueDate = parseDate(dueRaw);
 
     let description = '';
     if (f.description) {
@@ -72,23 +89,23 @@ function mapIssuesToRawData(issues, startFieldId) {
     }
 
     return {
-      _idx:        i,
-      key:         issue.key            || '',
-      summary:     f.summary            || '',
-      status:      f.status?.name       || 'Sin estado',
-      priority:    f.priority?.name     || 'Sin prioridad',
-      assignee:    f.assignee?.displayName || 'Sin asignar',
+      _idx: i,
+      key: issue.key || '',
+      summary: f.summary || '',
+      status: f.status?.name || 'Sin estado',
+      priority: f.priority?.name || 'Sin prioridad',
+      assignee: f.assignee?.displayName || 'Sin asignar',
       description,
-      project:     f.project?.name      || 'Sin proyecto',
+      project: f.project?.name || 'Sin proyecto',
       startRaw,
       dueRaw,
       startDate,
       dueDate,
-      hasStart:     !!startDate,
-      hasDue:       !!dueDate,
-      hasAnyDate:   !!(startDate || dueDate),
+      hasStart: !!startDate,
+      hasDue: !!dueDate,
+      hasAnyDate: !!(startDate || dueDate),
       startInvalid: !!(startRaw && !startDate),
-      dueInvalid:   !!(dueRaw   && !dueDate),
+      dueInvalid: !!(dueRaw && !dueDate),
     };
   });
 }
@@ -96,17 +113,17 @@ function mapIssuesToRawData(issues, startFieldId) {
 // ── API calls (through the local proxy) ───────────────────────────────
 function getJiraConfig() {
   return {
-    baseUrl:  document.getElementById('jiraBaseUrl').value.trim().replace(/\/$/, ''),
-    email:    document.getElementById('jiraEmail').value.trim(),
+    baseUrl: document.getElementById('jiraBaseUrl').value.trim().replace(/\/$/, ''),
+    email: document.getElementById('jiraEmail').value.trim(),
     apiToken: document.getElementById('jiraToken').value.trim(),
   };
 }
 
 async function apiPost(endpoint, body) {
   const res = await fetch(endpoint, {
-    method:  'POST',
+    method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify(body),
+    body: JSON.stringify(body),
   });
   const data = await res.json();
   if (!res.ok) {
@@ -118,13 +135,13 @@ async function apiPost(endpoint, body) {
 
 // ── Progress UI ───────────────────────────────────────────────────────
 function setJiraProgress(current, total, msg) {
-  const pct     = total > 0 ? Math.round(current / total * 100) : 0;
-  const barEl   = document.getElementById('jiraProgressBar');
-  const textEl  = document.getElementById('jiraProgressText');
+  const pct = total > 0 ? Math.round(current / total * 100) : 0;
+  const barEl = document.getElementById('jiraProgressBar');
+  const textEl = document.getElementById('jiraProgressText');
   const countEl = document.getElementById('jiraProgressCount');
 
-  if (barEl)   barEl.style.width = `${pct}%`;
-  if (textEl)  textEl.textContent = msg || 'Cargando...';
+  if (barEl) barEl.style.width = `${pct}%`;
+  if (textEl) textEl.textContent = msg || 'Cargando...';
   if (countEl) countEl.textContent = total > 0 ? `${current} / ${total}` : '';
 }
 
@@ -136,15 +153,15 @@ function setConnectStatus(msg, type = 'info') {
   const el = document.getElementById('jiraConnectStatus');
   if (!el) return;
   el.className = `alert alert-${type}`;
-  el.textContent = msg;
+  el.innerHTML = msg;
   el.classList.remove('hidden');
 }
 
 // ── Main connect flow ─────────────────────────────────────────────────
 async function connectToJira() {
-  const config  = getJiraConfig();
-  const jql     = document.getElementById('jiraJql').value.trim();
-  const btn     = document.getElementById('jiraConnectBtn');
+  const config = getJiraConfig();
+  const jql = document.getElementById('jiraJql').value.trim();
+  const btn = document.getElementById('jiraConnectBtn');
 
   // Basic validation
   if (!config.baseUrl || !config.email || !config.apiToken) {
@@ -163,19 +180,28 @@ async function connectToJira() {
 
   try {
     // ── 1. Test connection ────────────────────────────────────────────
-    setConnectStatus('🔗 Verificando conexión...', 'info');
+    setConnectStatus('<i class="fa-solid fa-link"></i> Verificando conexión...', 'info');
     const me = await apiPost('/api/jira/test', config);
-    setConnectStatus(`✅ Conectado como ${me.displayName || me.emailAddress}`, 'info');
+    setConnectStatus(`<i class="fa-solid fa-check"></i> Conectado como ${me.displayName || me.emailAddress}`, 'info');
 
-    // ── 2. Fetch fields to find "Start date" custom field ─────────────
-    setConnectStatus('🔍 Detectando campos personalizados...', 'info');
-    const fields      = await apiPost('/api/jira/fields', config);
-    const startFieldId = findStartDateFieldId(fields);
+    // ── 2. Fetch fields to find "Start date" and custom "Due date" ───
+    setConnectStatus('<i class="fa-solid fa-magnifying-glass"></i> Detectando campos personalizados...', 'info');
+    const fields = await apiPost('/api/jira/fields', config);
+    // findStartDateFieldId searches ALL fields (custom + built-in).
+    // If not found by name, fall back to the well-known built-in IDs used by Jira Plans.
+    const startFieldId = findStartDateFieldId(fields)
+      || (fields.find(f => f.id === 'startDate') ? 'startDate' : null)
+      || (fields.find(f => f.id === 'start_date') ? 'start_date' : null)
+      || (fields.find(f => f.id === 'customfield_10015') ? 'customfield_10015' : null);
+    const dueDateFieldId = findDueDateFieldId(fields);
 
     const fieldsToFetch = [
       'summary', 'status', 'priority', 'assignee',
       'description', 'project', 'duedate',
-      ...(startFieldId ? [startFieldId] : []),
+      'startDate',         // built-in Jira Cloud "Start date" (always request as fallback)
+      'customfield_10015', // standard Jira Plans / Timeline "Start date" field ID
+      ...(startFieldId && !['startDate', 'customfield_10015'].includes(startFieldId) ? [startFieldId] : []),
+      ...(dueDateFieldId ? [dueDateFieldId] : []),
     ];
 
     // ── 3. Paginate through all matching issues ───────────────────────
@@ -183,15 +209,15 @@ async function connectToJira() {
     setJiraProgress(0, 0, 'Consultando Jira...');
 
     const MAX_PER_PAGE = 100;
-    let startAt    = 0;
-    let total      = Infinity;
+    let startAt = 0;
+    let total = Infinity;
     const allIssues = [];
 
     while (startAt < total) {
       const page = await apiPost('/api/jira/search', {
         ...config,
         jql,
-        fields:     fieldsToFetch,
+        fields: fieldsToFetch,
         maxResults: MAX_PER_PAGE,
         startAt,
       });
@@ -207,7 +233,7 @@ async function connectToJira() {
     }
 
     if (!allIssues.length) {
-      setConnectStatus(`⚠️ La consulta JQL no devolvió ninguna tarea. Revisa el JQL e intenta de nuevo.`, 'warning');
+      setConnectStatus(`<i class="fa-solid fa-triangle-exclamation"></i> La consulta JQL no devolvió ninguna tarea. Revisa el JQL e intenta de nuevo.`, 'warning');
       showJiraProgress(false);
       btn.disabled = false;
       return;
@@ -215,7 +241,7 @@ async function connectToJira() {
 
     // ── 4. Map to rawData format and load ─────────────────────────────
     setJiraProgress(allIssues.length, total, 'Procesando tareas...');
-    const mapped = mapIssuesToRawData(allIssues, startFieldId);
+    const mapped = mapIssuesToRawData(allIssues, startFieldId, dueDateFieldId);
 
     // Fake columnMap so updateAlerts() knows dates were detected
     columnMap = {
@@ -224,21 +250,27 @@ async function connectToJira() {
       priority: 'priority', assignee: 'assignee',
       description: 'description', project: 'project',
       startDate: startFieldId || null,
-      dueDate: 'duedate',
+      dueDate: dueDateFieldId || 'duedate',
     };
 
     // Load into the shared pipeline
     loadRawData(mapped);
 
+    const withStart = mapped.filter(r => r.hasStart).length;
+    const withDue = mapped.filter(r => r.hasDue).length;
+    const startInfo = startFieldId || 'customfield_10015 (fallback)';
+    const dueInfo = dueDateFieldId || 'duedate (built-in)';
     setConnectStatus(
-      `✅ ${allIssues.length} tarea(s) cargadas desde Jira${startFieldId ? '' : ' (campo Start date no detectado)'}`,
+      `<i class="fa-solid fa-check"></i> ${allIssues.length} tarea(s) cargadas — ` +
+      `inicio: ${withStart}/${allIssues.length} [${startInfo}] · ` +
+      `fin: ${withDue}/${allIssues.length} [${dueInfo}]`,
       'info'
     );
     showJiraProgress(false);
 
   } catch (err) {
     console.error('Jira API error:', err);
-    setConnectStatus(`❌ Error: ${err.message}`, 'danger');
+    setConnectStatus(`<i class="fa-solid fa-circle-xmark"></i> Error: ${err.message}`, 'danger');
     showJiraProgress(false);
   } finally {
     btn.disabled = false;
@@ -251,23 +283,23 @@ async function connectToJira() {
  * Updates the status bar in the UI accordingly.
  */
 async function checkServerStatus() {
-  const dot       = document.getElementById('serverStatusDot');
-  const text      = document.getElementById('serverStatusText');
+  const dot = document.getElementById('serverStatusDot');
+  const text = document.getElementById('serverStatusText');
   const offlineEl = document.getElementById('serverOfflineAlert');
   const connectBtn = document.getElementById('jiraConnectBtn');
 
   // Reset to "checking" state
-  if (dot)  { dot.className  = 'server-status-dot checking'; }
+  if (dot) { dot.className = 'server-status-dot checking'; }
   if (text) { text.textContent = 'Verificando servidor...'; }
 
   try {
-    const res  = await fetch('/api/health', { cache: 'no-store' });
+    const res = await fetch('/api/health', { cache: 'no-store' });
     const data = await res.json();
 
     if (data.ok) {
       // ✅ Running
-      if (dot)       dot.className   = 'server-status-dot online';
-      if (text)      text.textContent = `Servidor activo (v${data.version})`;
+      if (dot) dot.className = 'server-status-dot online';
+      if (text) text.textContent = `Servidor activo (v${data.version})`;
       if (offlineEl) offlineEl.classList.add('hidden');
       if (connectBtn) connectBtn.disabled = false;
     } else {
@@ -275,8 +307,8 @@ async function checkServerStatus() {
     }
   } catch {
     // ❌ Not running (fetch failed = server offline or running as file://)
-    if (dot)       dot.className   = 'server-status-dot offline';
-    if (text)      text.textContent = 'Servidor no detectado';
+    if (dot) dot.className = 'server-status-dot offline';
+    if (text) text.textContent = 'Servidor no detectado';
     if (offlineEl) offlineEl.classList.remove('hidden');
     if (connectBtn) connectBtn.disabled = true;
   }
@@ -288,9 +320,9 @@ function copyServerCommand() {
   navigator.clipboard?.writeText(cmd).then(() => {
     const btn = document.getElementById('copyServerCmd');
     if (!btn) return;
-    const original = btn.textContent;
-    btn.textContent = '✅ Copiado';
-    setTimeout(() => { btn.textContent = original; }, 2000);
+    const original = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-check"></i> Copiado';
+    setTimeout(() => { btn.innerHTML = original; }, 2000);
   });
 }
 window.copyServerCommand = copyServerCommand;
@@ -307,7 +339,7 @@ window.insertJql = insertJql;
 // ── Re-query from results query panel ────────────────────────────────
 async function refreshJiraQuery() {
   const queryInput = document.getElementById('jiraQueryInput');
-  const jqlInput   = document.getElementById('jiraJql');
+  const jqlInput = document.getElementById('jiraJql');
   if (!queryInput || !jqlInput) return;
   jqlInput.value = queryInput.value.trim();
   await connectToJira();

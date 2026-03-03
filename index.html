@@ -1,365 +1,541 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Jira → Google Calendar Converter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
+
 <body>
 
-<!-- ── Loading Spinner ──────────────────────────────────────────────── -->
-<div class="spinner-overlay" id="spinnerOverlay">
-  <div class="spinner"></div>
-  <div class="spinner-text">Procesando archivo...</div>
-</div>
-
-<!-- ── Header ───────────────────────────────────────────────────────── -->
-<header class="app-header">
-  <div class="logo">
-    <svg viewBox="0 0 32 32" fill="none">
-      <rect width="32" height="32" rx="8" fill="#0052CC"/>
-      <path d="M16 6L8 14l3 3 5-5v14h4V12l5 5 3-3-8-8z" fill="white"/>
-    </svg>
-    Jira → Google Calendar
+  <!-- ── Loading Spinner ──────────────────────────────────────────────── -->
+  <div class="spinner-overlay" id="spinnerOverlay">
+    <div class="spinner"></div>
+    <div class="spinner-text">Procesando archivo...</div>
   </div>
-  <div class="header-actions">
-    <button class="theme-btn" id="themeBtn" title="Cambiar tema">🌙</button>
-    <button class="btn btn-secondary btn-sm" id="resetBtn" style="display:none">↺ Reiniciar</button>
-  </div>
-</header>
 
-<main class="main">
-
-  <!-- ╔═══════════════════════════════════════════════════════════════╗ -->
-  <!-- ║  MODE SELECTOR                                               ║ -->
-  <!-- ╚═══════════════════════════════════════════════════════════════╝ -->
-  <div class="section" id="modeSelectorSection">
-    <div class="section-title" style="justify-content:center;font-size:1.1rem;margin-bottom:24px;">
-      ¿Cómo quieres cargar las tareas de Jira?
+  <!-- ── Top Bar ────────────────────────────────────────────────────── -->
+  <header class="app-header">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" title="Menú">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+      <div class="logo">
+        <svg viewBox="0 0 32 32" fill="none">
+          <rect width="32" height="32" rx="8" fill="#0052CC" />
+          <path d="M16 6L8 14l3 3 5-5v14h4V12l5 5 3-3-8-8z" fill="white" />
+        </svg>
+        Jira → Google Calendar
+      </div>
     </div>
+    <div class="header-actions">
+      <button class="theme-btn" id="themeBtn" title="Cambiar tema"><i class="fa-solid fa-moon"></i></button>
+      <button class="btn btn-secondary btn-sm" id="resetBtn" style="display:none"><i
+          class="fa-solid fa-rotate-left"></i> Reiniciar</button>
+    </div>
+  </header>
 
-    <div class="mode-cards">
+  <!-- ── Sidebar ───────────────────────────────────────────────────── -->
+  <aside class="sidebar" id="sidebar">
+    <nav class="sidebar-nav">
+      <button class="sidebar-link active" onclick="selectMode(null)" id="navHome">
+        <i class="fa-solid fa-house"></i> <span>Inicio</span>
+      </button>
+      <button class="sidebar-link" onclick="selectMode('csv')" id="navCsv">
+        <i class="fa-solid fa-file-csv"></i> <span>CSV</span>
+      </button>
+      <button class="sidebar-link" onclick="selectMode('api')" id="navApi">
+        <i class="fa-solid fa-plug"></i> <span>API Jira</span>
+      </button>
+      <button class="sidebar-link" onclick="selectMode('about')" id="navAbout">
+        <i class="fa-solid fa-circle-info"></i> <span>Acerca de</span>
+      </button>
+    </nav>
+  </aside>
 
-      <div class="mode-card" id="cardCsv">
-        <div class="mode-card-icon">📄</div>
-        <h3>Cargar CSV</h3>
-        <p>Exporta el archivo CSV desde Jira y súbelo aquí. Funciona directamente en el navegador, sin instalación.</p>
-        <div class="mode-card-tags">
-          <span class="mode-tag">Sin instalación</span>
-          <span class="mode-tag">Drag &amp; drop</span>
-        </div>
-        <button class="btn btn-primary" style="margin-top:16px;width:100%;" onclick="selectMode('csv')">Seleccionar CSV</button>
+  <!-- ── Sidebar Overlay (mobile) ──────────────────────────────────── -->
+  <div class="sidebar-overlay hidden" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+  <main class="main">
+
+    <!-- ╔═══════════════════════════════════════════════════════════════╗ -->
+    <!-- ║  MODE SELECTOR                                               ║ -->
+    <!-- ╚═══════════════════════════════════════════════════════════════╝ -->
+    <div class="section" id="modeSelectorSection">
+      <div class="section-title" style="justify-content:center;font-size:1.1rem;margin-bottom:24px;">
+        ¿Cómo quieres cargar las tareas de Jira?
       </div>
 
-      <div class="mode-card" id="cardApi">
-        <div class="mode-card-icon">🔗</div>
-        <h3>Conectar con Jira</h3>
-        <p>Conecta directamente a la API de Jira con tu email y API Token. Requiere ejecutar el servidor local.</p>
-        <div class="mode-card-tags">
-          <span class="mode-tag">Requiere Node.js</span>
-          <span class="mode-tag">node server.js</span>
+      <div class="mode-cards">
+
+        <div class="mode-card" id="cardCsv">
+          <div class="mode-card-icon"><i class="fa-solid fa-file-csv"></i></div>
+          <h3>Cargar CSV</h3>
+          <p>Exporta el archivo CSV desde Jira y súbelo aquí. Funciona directamente en el navegador, sin instalación.
+          </p>
+          <div class="mode-card-tags">
+            <span class="mode-tag">Sin instalación</span>
+            <span class="mode-tag">Drag &amp; drop</span>
+          </div>
+          <button class="btn btn-primary" style="margin-top:16px;width:100%;" onclick="selectMode('csv')">Seleccionar
+            CSV</button>
         </div>
-        <button class="btn btn-primary" style="margin-top:16px;width:100%;" onclick="selectMode('api')">Conectar a Jira</button>
+
+        <div class="mode-card" id="cardApi">
+          <div class="mode-card-icon"><i class="fa-solid fa-link"></i></div>
+          <h3>Conectar con Jira</h3>
+          <p>Conecta directamente a la API de Jira con tu email y API Token. Requiere ejecutar el servidor local.</p>
+          <div class="mode-card-tags">
+            <span class="mode-tag">Requiere Node.js</span>
+            <span class="mode-tag">node server.js</span>
+          </div>
+          <button class="btn btn-primary" style="margin-top:16px;width:100%;" onclick="selectMode('api')">Conectar a
+            Jira</button>
+        </div>
+
+      </div>
+    </div><!-- /#modeSelectorSection -->
+
+
+    <!-- ╔═══════════════════════════════════════════════════════════════╗ -->
+    <!-- ║  CSV MODE                                                    ║ -->
+    <!-- ╚═══════════════════════════════════════════════════════════════╝ -->
+    <div class="section hidden" id="uploadSection">
+      <div
+        style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+        <div class="section-title" style="margin-bottom:0;"><i class="fa-solid fa-file-csv"
+            style="margin-right:8px;"></i> Cargar archivo CSV de Jira</div>
+        <button class="btn btn-secondary btn-sm" onclick="selectMode(null)"><i class="fa-solid fa-arrow-left"></i>
+          Cambiar modo</button>
       </div>
 
-    </div>
-  </div><!-- /#modeSelectorSection -->
+      <div class="upload-zone" id="uploadZone">
+        <div class="upload-icon"><i class="fa-solid fa-file-arrow-up"></i></div>
+        <h3>Arrastra tu CSV de Jira aquí</h3>
+        <p>o haz clic para seleccionar el archivo</p>
+        <br>
+        <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+          Seleccionar archivo
+        </button>
+      </div>
+      <input type="file" id="fileInput" accept=".csv">
+
+    </div><!-- /#uploadSection -->
 
 
-  <!-- ╔═══════════════════════════════════════════════════════════════╗ -->
-  <!-- ║  CSV MODE                                                    ║ -->
-  <!-- ╚═══════════════════════════════════════════════════════════════╝ -->
-  <div class="section hidden" id="uploadSection">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
-      <div class="section-title" style="margin-bottom:0;">📄 Cargar archivo CSV de Jira</div>
-      <button class="btn btn-secondary btn-sm" onclick="selectMode(null)">← Cambiar modo</button>
-    </div>
 
-    <div class="upload-zone" id="uploadZone">
-      <div class="upload-icon">📄</div>
-      <h3>Arrastra tu CSV de Jira aquí</h3>
-      <p>o haz clic para seleccionar el archivo</p>
-      <br>
-      <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
-        Seleccionar archivo
+
+    <!-- ╔═══════════════════════════════════════════════════════════════╗ -->
+    <!-- ║  ABOUT SECTION                                               ║ -->
+    <!-- ╚═══════════════════════════════════════════════════════════════╝ -->
+    <div class="section hidden" id="aboutSection" style="max-width:800px; margin:0 auto;">
+      <div class="section-title" style="font-size:1.5rem; margin-bottom:24px;">
+        <span style="font-size:1.6rem; margin-right:8px;"><i class="fa-solid fa-rocket"></i></span> Acerca del Proyecto
+      </div>
+
+      <div
+        style="background:var(--surface);border-radius:12px;padding:32px;border:1px solid var(--border);color:var(--text2);line-height:1.7; font-size:1.05rem;">
+        <h3 style="color:var(--primary);margin-top:0;font-size:1.3rem;">¿Qué es Jira Calendar Converter?</h3>
+        <p style="margin-bottom:24px;">
+          Esta es una herramienta puente que facilita la visualización y sincronización de tareas entre
+          <strong>Jira</strong> y <strong>Google Calendar</strong>. Aunque Jira permite exportar sus <em>issues</em> en
+          un archivo CSV, este formato crudo carece de compatibilidad nativa fluida con plataformas de calendario
+          corporativas. Esta aplicación procesa, estandariza y traduce esa data a un formato perfectamente digerible de
+          importación (Google).
+        </p>
+
+        <h3 style="color:var(--primary);font-size:1.3rem;">¿Por qué se creó?</h3>
+        <p style="margin-bottom:24px;">
+          Manejar sprints, entregables y seguimientos requiere una visión cronogramada constante. Copiar manualmente
+          cada tarea a un calendario personal o de equipo para agendar bloques de tiempo es sumamente tedioso y propenso
+          a omisiones humanas. Esta aplicación nació como una solución para automatizar y masificar ese puente visual
+          sin fricciones de formato.
+        </p>
+
+        <h3 style="color:var(--primary);font-size:1.3rem;">Privacidad y Seguridad</h3>
+        <p style="margin-bottom:0;">
+          Su código está fundamentado bajo el principio de procesamiento local. Se ejecuta enteramente en el navegador
+          del usuario y su ambiente anfitrión local. <strong>Los archivos o exportes CSV de la empresa nunca se envían
+            ni se retienen en ningún servidor externo</strong>, quedando todas la información e historiales
+          confidenciales protegidos dentro de tu propio equipo de trabajo.
+        </p>
+      </div>
+    </div><!-- /#aboutSection -->
+
+
+    <!-- ╔═══════════════════════════════════════════════════════════════╗ -->
+    <!-- ║  JIRA API MODE                                               ║ -->
+    <!-- ╚═══════════════════════════════════════════════════════════════╝ -->
+    <div class="section hidden" id="jiraSection">
+
+      <div
+        style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+        <div class="section-title" style="margin-bottom:0;"><i class="fa-solid fa-plug" style="margin-right:8px;"></i>
+          Conectar con Jira API</div>
+        <button class="btn btn-secondary btn-sm" onclick="selectMode(null)"><i class="fa-solid fa-arrow-left"></i>
+          Cambiar modo</button>
+      </div>
+
+      <!-- Server status widget -->
+      <div class="server-status-bar" id="serverStatusBar">
+        <div class="server-status-left">
+          <span class="server-status-dot" id="serverStatusDot"></span>
+          <span id="serverStatusText">Verificando servidor...</span>
+        </div>
+        <button class="btn btn-secondary btn-sm" id="checkServerBtn"><i class="fa-solid fa-rotate-right"></i>
+          Verificar</button>
+      </div>
+
+      <!-- Shown only when server is NOT running -->
+      <div class="alert alert-warning hidden" id="serverOfflineAlert"
+        style="margin-bottom:16px;flex-direction:column;gap:12px;">
+        <div style="font-size:1.05rem;font-weight:700;display:flex;align-items:center;gap:8px;">
+          <span><i class="fa-solid fa-triangle-exclamation"></i></span> El servidor local no está corriendo
+        </div>
+        <p style="margin:0;font-size:0.95rem;">Para conectar con la API de Jira y evitar bloqueos de seguridad del
+          navegador, necesitas levantar el servidor ligero de Node.js incluido en la carpeta.</p>
+        <div
+          style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-top:4px;">
+          <h4 style="font-size:0.9rem;margin-bottom:12px;color:var(--text);font-weight:700;">Pasos para iniciarlo:</h4>
+          <ol
+            style="margin:0;padding-left:20px;font-size:0.9rem;color:var(--text2);display:flex;flex-direction:column;gap:8px;">
+            <li>Abre una terminal (CMD o PowerShell) en la carpeta de este proyecto.</li>
+            <li>Opcional (solo la primera vez): Instala las dependencias ejecutando:
+              <div class="copy-command-wrap" style="margin-top:6px;margin-bottom:8px;">
+                <code id="installCmd">npm install</code>
+                <button class="btn-copy" onclick="navigator.clipboard.writeText('npm install')"
+                  title="Copiar instalador"><i class="fa-regular fa-copy"></i> Copiar</button>
+              </div>
+            </li>
+            <li>Luego arranca el servidor ejecutando:
+              <div class="copy-command-wrap" style="margin-top:6px;">
+                <code id="serverCmd">node server.js</code>
+                <button class="btn-copy" id="copyServerCmd" onclick="copyServerCommand()" title="Copiar comando"><i
+                    class="fa-regular fa-copy"></i> Copiar</button>
+              </div>
+            </li>
+          </ol>
+        </div>
+        <p style="margin:0;font-size:0.9rem;margin-top:4px;">Una vez lo inicies, haz clic en <strong>Verificar</strong>
+          o recarga esta página en <a href="http://localhost:3000" target="_blank"
+            style="font-weight:600;">http://localhost:3000</a>.</p>
+      </div>
+
+      <!-- Credentials (collapsible) -->
+      <details class="jira-credentials-card" id="jiraCredentialsDetails" open>
+        <summary class="jira-credentials-summary"><i class="fa-solid fa-key" style="margin-right:8px;"></i> Credenciales
+          de Jira</summary>
+        <div class="jira-form-grid">
+          <div class="filter-group" style="grid-column:1/-1;">
+            <label for="jiraBaseUrl">URL de Jira</label>
+            <input type="url" id="jiraBaseUrl" placeholder="https://tuempresa.atlassian.net"
+              value="https://newryndem.atlassian.net">
+          </div>
+          <div class="filter-group">
+            <label>Email de Atlassian</label>
+            <input type="email" id="jiraEmail" placeholder="tu@email.com">
+          </div>
+          <div class="filter-group">
+            <label>
+              API Token
+              <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank"
+                style="font-size:.75rem;margin-left:6px;font-weight:400;">
+                Generar token <i class="fa-solid fa-arrow-up-right-from-square"></i>
+              </a>
+            </label>
+            <div style="position:relative;">
+              <input type="password" id="jiraToken" placeholder="Pega aquí tu API Token" style="padding-right:80px;">
+              <button class="btn-show-token" id="tokenToggleBtn" onclick="toggleTokenVisibility()">Mostrar</button>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <!-- JQL section (always prominent) -->
+      <div class="jira-jql-section">
+        <div class="filter-group">
+          <label for="jiraJql"
+            style="font-size:.85rem;font-weight:700;color:var(--text);text-transform:none;letter-spacing:0;">
+            Consulta JQL
+          </label>
+          <input type="text" id="jiraJql" placeholder="project = PESS ORDER BY created DESC"
+            style="font-family:monospace;font-size:.9rem;">
+          <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
+            <span style="font-size:.78rem;color:var(--text2);">Ejemplos:</span>
+            <button class="jql-chip" onclick="insertJql('project = PESS ORDER BY created DESC')">project = PESS</button>
+            <button class="jql-chip" onclick="insertJql('assignee = currentUser() ORDER BY duedate ASC')">Mis
+              tareas</button>
+            <button class="jql-chip"
+              onclick="insertJql('project = PESS AND status != Done ORDER BY duedate ASC')">Pendientes</button>
+            <button class="jql-chip" onclick="insertJql('project = PESS AND sprint in openSprints()')">Sprint
+              activo</button>
+          </div>
+        </div>
+        <div style="margin-top:16px;">
+          <button class="btn btn-primary" id="jiraConnectBtn"><i class="fa-solid fa-magnifying-glass"></i> Conectar y
+            cargar tareas</button>
+        </div>
+      </div>
+
+      <!-- Status -->
+      <div class="alert hidden" id="jiraConnectStatus" style="margin-top:14px;"></div>
+
+      <!-- Progress -->
+      <div id="jiraProgress" class="hidden" style="margin-top:14px;">
+        <div style="display:flex;justify-content:space-between;font-size:.82rem;color:var(--text2);margin-bottom:6px;">
+          <span id="jiraProgressText">Cargando...</span>
+          <span id="jiraProgressCount"></span>
+        </div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar" id="jiraProgressBar" style="width:0%"></div>
+        </div>
+      </div>
+
+    </div><!-- /#jiraSection -->
+
+
+    <!-- ╔═══════════════════════════════════════════════════════════════╗ -->
+    <!-- ║  RESULTS — shared by both modes                             ║ -->
+    <!-- ╚═══════════════════════════════════════════════════════════════╝ -->
+    <div id="resultsSection" class="hidden">
+
+      <div id="alertsContainer"></div>
+      <div class="stats-grid" id="statsGrid"></div>
+
+      <!-- Jira query panel — visible only in API mode to re-run queries -->
+      <div id="jiraQueryPanel" class="hidden jira-query-panel">
+        <div class="jira-query-bar">
+          <span class="jira-query-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
+          <input type="text" id="jiraQueryInput" class="jira-query-input"
+            placeholder="JQL — edita y haz clic en Actualizar">
+          <button class="btn btn-primary btn-sm" id="jiraRefreshBtn"><i class="fa-solid fa-rotate-right"></i> Actualizar
+            resultados</button>
+          <button class="btn btn-secondary btn-sm" onclick="showJiraForm()"><i class="fa-solid fa-gear"></i>
+            Credenciales</button>
+        </div>
+      </div>
+
+      <div class="section" style="padding-bottom:0;">
+        <div class="tabs">
+          <button class="tab active" data-tab="filters"><i class="fa-solid fa-filter"></i> Filtros</button>
+          <button class="tab" data-tab="table"><i class="fa-solid fa-table"></i> Tabla resumen</button>
+          <button class="tab" data-tab="charts"><i class="fa-solid fa-chart-pie"></i> Gráficos</button>
+          <button class="tab" data-tab="options"><i class="fa-solid fa-gear"></i> Opciones</button>
+          <button class="tab" data-tab="export"><i class="fa-solid fa-download"></i> Exportar</button>
+        </div>
+
+        <!-- FILTERS -->
+        <div class="tab-content active" id="tab-filters" style="padding-bottom:20px;">
+          <div id="filtersGrid"></div>
+          <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-primary" id="applyFiltersBtn">Aplicar filtros</button>
+            <button class="btn btn-secondary" id="clearFiltersBtn">Limpiar filtros</button>
+          </div>
+        </div>
+
+        <!-- TABLE -->
+        <div class="tab-content" id="tab-table" style="padding-bottom:20px;">
+          <div id="tableWarn" style="margin-bottom:10px;"></div>
+          <div class="table-wrap">
+            <table id="summaryTable">
+              <thead>
+                <tr>
+                  <th>Clave</th>
+                  <th>Título</th>
+                  <th>Inicio</th>
+                  <th>Fin</th>
+                  <th>Estado</th>
+                  <th>Prioridad</th>
+                  <th>Proyecto</th>
+                  <th>Asignado a</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+          <div id="tablePagination" style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          </div>
+        </div>
+
+        <!-- CHARTS -->
+        <div class="tab-content" id="tab-charts" style="padding-bottom:20px;">
+          <div class="charts-grid">
+            <div class="chart-card">
+              <h4><i class="fa-regular fa-folder" style="margin-right:4px;"></i> Por proyecto</h4>
+              <div class="chart-container"><canvas id="chartProject"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <h4><i class="fa-solid fa-route" style="margin-right:4px;"></i> Por estado</h4>
+              <div class="chart-container"><canvas id="chartStatus"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <h4><i class="fa-solid fa-bolt" style="margin-right:4px;"></i> Por prioridad</h4>
+              <div class="chart-container"><canvas id="chartPriority"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <h4><i class="fa-solid fa-user-group" style="margin-right:4px;"></i> Por asignado (top 8)</h4>
+              <div class="chart-container"><canvas id="chartAssignee"></canvas></div>
+            </div>
+          </div>
+          <div class="chart-card" style="margin-top:20px;">
+            <h4><i class="fa-regular fa-calendar" style="margin-right:4px;"></i> Timeline de tareas</h4>
+            <div class="timeline-wrap">
+              <div id="ganttChart"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- OPTIONS -->
+        <div class="tab-content" id="tab-options" style="padding-bottom:20px;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:24px;">
+            <div>
+              <div class="section-title"><i class="fa-regular fa-note-sticky" style="margin-right:6px;"></i> Contenido
+                del evento</div>
+              <div class="option-item"><input type="checkbox" id="optIncludeDesc" checked><label
+                  for="optIncludeDesc">Incluir descripción completa</label></div>
+              <div class="option-item"><input type="checkbox" id="optIncludeLink" checked><label
+                  for="optIncludeLink">Incluir enlace a Jira</label></div>
+              <div class="option-item"><input type="checkbox" id="optIncludeStatus" checked><label
+                  for="optIncludeStatus">Incluir estado</label></div>
+              <div class="option-item"><input type="checkbox" id="optIncludePriority" checked><label
+                  for="optIncludePriority">Incluir prioridad</label></div>
+              <div class="option-item"><input type="checkbox" id="optIncludeAssignee" checked><label
+                  for="optIncludeAssignee">Incluir persona asignada</label></div>
+            </div>
+            <div>
+              <div class="section-title"><i class="fa-solid fa-tag" style="margin-right:6px;"></i> Formato del título
+              </div>
+              <div class="radio-group">
+                <label><input type="radio" name="titleFormat" value="key_summary" checked> [CLAVE] Resumen</label>
+                <label><input type="radio" name="titleFormat" value="summary_only"> Solo resumen</label>
+                <label><input type="radio" name="titleFormat" value="project_key_summary"> [Proyecto - CLAVE]
+                  Resumen</label>
+                <label><input type="radio" name="titleFormat" value="key_only"> Solo clave</label>
+              </div>
+            </div>
+            <div>
+              <div class="section-title"><i class="fa-regular fa-calendar-days" style="margin-right:6px;"></i> Tipo de
+                evento</div>
+              <div class="radio-group">
+                <label><input type="radio" name="eventType" value="allday" checked> Todo el día (recomendado)</label>
+                <label><input type="radio" name="eventType" value="timed"> Con hora (si está en Jira)</label>
+              </div>
+            </div>
+            <div>
+              <div class="section-title"><i class="fa-solid fa-hashtag" style="margin-right:6px;"></i> Cuando falta una
+                fecha</div>
+              <div class="radio-group">
+                <label><input type="radio" name="missingDate" value="skip"> Omitir la tarea</label>
+                <label><input type="radio" name="missingDate" value="same" checked> Usar la fecha disponible para inicio
+                  y fin</label>
+                <label><input type="radio" name="missingDate" value="today"> Usar la fecha de hoy como faltante</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- EXPORT -->
+        <div class="tab-content" id="tab-export" style="padding-bottom:20px;">
+          <div class="export-actions">
+            <button class="btn btn-success" id="exportAllBtn"><i class="fa-solid fa-file-arrow-down"></i> Descargar todo
+              en un CSV</button>
+            <button class="btn btn-primary" id="exportByProjectBtn"><i class="fa-regular fa-folder"></i> Un CSV por
+              proyecto</button>
+            <button class="btn btn-secondary" id="exportByStatusBtn"><i class="fa-solid fa-list-check"></i> Un CSV por
+              estado</button>
+          </div>
+          <p style="margin-top:12px;font-size:.85rem;color:var(--text2);">
+            Si exportas por proyecto o estado se descargará un archivo por cada grupo.
+            Importa cada CSV en Google Calendar de forma independiente.
+          </p>
+          <div id="exportPreview" style="margin-top:16px;"></div>
+        </div>
+
+      </div><!-- /.section tabs -->
+    </div><!-- /#resultsSection -->
+
+  </main>
+
+  <!-- ── FLOATING GUIDE WIDGET ─────────────────────────────────────────── -->
+  <button class="guide-fab" id="guideFab" onclick="toggleGuide()" title="Guía de uso">
+    <i class="fa-solid fa-circle-question"></i>
+  </button>
+
+  <div class="guide-panel hidden" id="guidePanel">
+    <div class="guide-panel-header">
+      <span><i class="fa-solid fa-circle-info" style="margin-right:8px;"></i> Guía de uso</span>
+      <button class="guide-panel-close" onclick="toggleGuide()" title="Cerrar">
+        <i class="fa-solid fa-xmark"></i>
       </button>
     </div>
-    <input type="file" id="fileInput" accept=".csv">
-
-    <details style="margin-top:20px;">
-      <summary style="cursor:pointer;font-weight:600;color:var(--primary);font-size:.9rem;">
-        ℹ️ ¿Cómo exportar desde Jira?
-      </summary>
-      <div class="steps" style="margin-top:14px;">
+    <div class="guide-panel-body">
+      <div class="steps components-steps">
         <div class="step">
           <div class="step-num">1</div>
           <h4>Exportar desde Jira</h4>
           <ol>
-            <li>Ve a tu proyecto en Jira y abre la vista de Lista</li>
-            <li>Aplica los filtros que necesites</li>
-            <li>Haz clic en <strong>Exportar → Exportar a CSV</strong></li>
-            <li>Selecciona <strong>"Todos los campos"</strong></li>
+            <li>Ve a tu proyecto en Jira y abre la vista de <strong>Lista</strong> o <strong>Backlog</strong>.</li>
+            <li>Aplica los filtros que necesites (sprint, épica, asignado).</li>
+            <li>Haz clic en <strong>Exportar → Exportar a CSV</strong>.</li>
+            <li>Asegúrate de seleccionar <strong>"Todos los campos"</strong>.</li>
           </ol>
         </div>
         <div class="step">
           <div class="step-num">2</div>
-          <h4>Importar a Google Calendar</h4>
+          <h4>Opciones y Carga Múltiple</h4>
+          <ul>
+            <li>La herramienta detecta automáticamente el idioma de las columnas.</li>
+            <li>Puedes arrastrar más de un archivo CSV para <strong>fusionarlos</strong>.</li>
+            <li>Revisa la gráfica de distribución antes de exportar.</li>
+          </ul>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <h4>Crear un Calendario Nuevo</h4>
           <ol>
-            <li>Abre <a href="https://calendar.google.com" target="_blank">Google Calendar</a></li>
-            <li>⚙️ → <strong>Configuración → Importar y exportar</strong></li>
-            <li>Sube el CSV descargado y elige el calendario destino</li>
+            <li>Abre <a href="https://calendar.google.com" target="_blank">Google Calendar</a>.</li>
+            <li>Junto a <strong>Otros calendarios</strong>, haz clic en <strong>+</strong> → <strong>Crear un
+                calendario</strong>.</li>
+            <li>Ponle nombre (ej. "Tareas Jira") y haz clic en <strong>Crear</strong>.</li>
+            <li><em>(Así puedes borrarlas todas fácilmente si es necesario).</em></li>
+          </ol>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <h4>Importar el CSV generado</h4>
+          <ol>
+            <li>Haz clic en <i class="fa-solid fa-gear"></i> → <strong>Configuración</strong>.</li>
+            <li>Selecciona <strong>Importar y exportar</strong> en el menú lateral.</li>
+            <li>Sube el CSV que descargaste de esta herramienta.</li>
+            <li><strong>Importante:</strong> selecciona el calendario nuevo que creaste.</li>
+            <li>Haz clic en <strong>Importar</strong>.</li>
           </ol>
         </div>
       </div>
-    </details>
-  </div><!-- /#uploadSection -->
-
-
-  <!-- ╔═══════════════════════════════════════════════════════════════╗ -->
-  <!-- ║  JIRA API MODE                                               ║ -->
-  <!-- ╚═══════════════════════════════════════════════════════════════╝ -->
-  <div class="section hidden" id="jiraSection">
-
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
-      <div class="section-title" style="margin-bottom:0;">🔗 Conectar con Jira API</div>
-      <button class="btn btn-secondary btn-sm" onclick="selectMode(null)">← Cambiar modo</button>
     </div>
+  </div>
 
-    <!-- Server status widget -->
-    <div class="server-status-bar" id="serverStatusBar">
-      <div class="server-status-left">
-        <span class="server-status-dot" id="serverStatusDot"></span>
-        <span id="serverStatusText">Verificando servidor...</span>
-      </div>
-      <button class="btn btn-secondary btn-sm" id="checkServerBtn">🔄 Verificar</button>
-    </div>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
-    <!-- Shown only when server is NOT running -->
-    <div class="alert alert-warning hidden" id="serverOfflineAlert" style="margin-bottom:16px;">
-      <div>
-        <strong>El servidor no está corriendo.</strong>
-        Abre una terminal en la carpeta del proyecto y ejecuta:
-        <div class="copy-command-wrap">
-          <code id="serverCmd">npm install &amp;&amp; node server.js</code>
-          <button class="btn-copy" id="copyServerCmd" onclick="copyServerCommand()" title="Copiar comando">📋 Copiar</button>
-        </div>
-        Luego haz clic en <strong>Verificar</strong> o recarga desde
-        <a href="http://localhost:3000" target="_blank">http://localhost:3000</a>.
-      </div>
-    </div>
-
-    <!-- Credentials (collapsible) -->
-    <details class="jira-credentials-card" id="jiraCredentialsDetails" open>
-      <summary class="jira-credentials-summary">🔑 Credenciales de Jira</summary>
-      <div class="jira-form-grid">
-        <div class="filter-group" style="grid-column:1/-1;">
-          <label for="jiraBaseUrl">URL de Jira</label>
-          <input type="url" id="jiraBaseUrl"
-                 placeholder="https://tuempresa.atlassian.net"
-                 value="https://newryndem.atlassian.net">
-        </div>
-        <div class="filter-group">
-          <label>Email de Atlassian</label>
-          <input type="email" id="jiraEmail" placeholder="tu@email.com">
-        </div>
-        <div class="filter-group">
-          <label>
-            API Token
-            <a href="https://id.atlassian.com/manage-profile/security/api-tokens"
-               target="_blank" style="font-size:.75rem;margin-left:6px;font-weight:400;">
-              Generar token ↗
-            </a>
-          </label>
-          <div style="position:relative;">
-            <input type="password" id="jiraToken"
-                   placeholder="Pega aquí tu API Token"
-                   style="padding-right:80px;">
-            <button class="btn-show-token" id="tokenToggleBtn"
-                    onclick="toggleTokenVisibility()">Mostrar</button>
-          </div>
-        </div>
-      </div>
-    </details>
-
-    <!-- JQL section (always prominent) -->
-    <div class="jira-jql-section">
-      <div class="filter-group">
-        <label for="jiraJql" style="font-size:.85rem;font-weight:700;color:var(--text);text-transform:none;letter-spacing:0;">
-          Consulta JQL
-        </label>
-        <input type="text" id="jiraJql"
-               placeholder="project = PESS ORDER BY created DESC"
-               style="font-family:monospace;font-size:.9rem;">
-        <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
-          <span style="font-size:.78rem;color:var(--text2);">Ejemplos:</span>
-          <button class="jql-chip" onclick="insertJql('project = PESS ORDER BY created DESC')">project = PESS</button>
-          <button class="jql-chip" onclick="insertJql('assignee = currentUser() ORDER BY duedate ASC')">Mis tareas</button>
-          <button class="jql-chip" onclick="insertJql('project = PESS AND status != Done ORDER BY duedate ASC')">Pendientes</button>
-          <button class="jql-chip" onclick="insertJql('project = PESS AND sprint in openSprints()')">Sprint activo</button>
-        </div>
-      </div>
-      <div style="margin-top:16px;">
-        <button class="btn btn-primary" id="jiraConnectBtn">🔍 Conectar y cargar tareas</button>
-      </div>
-    </div>
-
-    <!-- Status -->
-    <div class="alert hidden" id="jiraConnectStatus" style="margin-top:14px;"></div>
-
-    <!-- Progress -->
-    <div id="jiraProgress" class="hidden" style="margin-top:14px;">
-      <div style="display:flex;justify-content:space-between;font-size:.82rem;color:var(--text2);margin-bottom:6px;">
-        <span id="jiraProgressText">Cargando...</span>
-        <span id="jiraProgressCount"></span>
-      </div>
-      <div class="progress-bar-wrap">
-        <div class="progress-bar" id="jiraProgressBar" style="width:0%"></div>
-      </div>
-    </div>
-
-  </div><!-- /#jiraSection -->
-
-
-  <!-- ╔═══════════════════════════════════════════════════════════════╗ -->
-  <!-- ║  RESULTS — shared by both modes                             ║ -->
-  <!-- ╚═══════════════════════════════════════════════════════════════╝ -->
-  <div id="resultsSection" class="hidden">
-
-    <div id="alertsContainer"></div>
-    <div class="stats-grid" id="statsGrid"></div>
-
-    <!-- Jira query panel — visible only in API mode to re-run queries -->
-    <div id="jiraQueryPanel" class="hidden jira-query-panel">
-      <div class="jira-query-bar">
-        <span class="jira-query-icon">🔗</span>
-        <input type="text" id="jiraQueryInput" class="jira-query-input"
-               placeholder="JQL — edita y haz clic en Actualizar">
-        <button class="btn btn-primary btn-sm" id="jiraRefreshBtn">🔄 Actualizar resultados</button>
-        <button class="btn btn-secondary btn-sm" onclick="showJiraForm()">⚙️ Credenciales</button>
-      </div>
-    </div>
-
-    <div class="section" style="padding-bottom:0;">
-      <div class="tabs">
-        <button class="tab active" data-tab="filters">🔍 Filtros</button>
-        <button class="tab"        data-tab="table"  >📋 Tabla resumen</button>
-        <button class="tab"        data-tab="charts" >📊 Gráficos</button>
-        <button class="tab"        data-tab="options">⚙️ Opciones</button>
-        <button class="tab"        data-tab="export" >⬇️ Exportar</button>
-      </div>
-
-      <!-- FILTERS -->
-      <div class="tab-content active" id="tab-filters" style="padding-bottom:20px;">
-        <div class="filters-grid" id="filtersGrid"></div>
-        <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
-          <button class="btn btn-primary"   id="applyFiltersBtn">Aplicar filtros</button>
-          <button class="btn btn-secondary" id="clearFiltersBtn">Limpiar filtros</button>
-        </div>
-      </div>
-
-      <!-- TABLE -->
-      <div class="tab-content" id="tab-table" style="padding-bottom:20px;">
-        <div id="tableWarn" style="margin-bottom:10px;"></div>
-        <div class="table-wrap">
-          <table id="summaryTable">
-            <thead>
-              <tr>
-                <th>Clave</th><th>Título</th><th>Inicio</th><th>Fin</th>
-                <th>Estado</th><th>Prioridad</th><th>Proyecto</th><th>Asignado a</th>
-              </tr>
-            </thead>
-            <tbody id="tableBody"></tbody>
-          </table>
-        </div>
-        <div id="tablePagination" style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;"></div>
-      </div>
-
-      <!-- CHARTS -->
-      <div class="tab-content" id="tab-charts" style="padding-bottom:20px;">
-        <div class="charts-grid">
-          <div class="chart-card"><h4>📁 Por proyecto</h4><div class="chart-container"><canvas id="chartProject"></canvas></div></div>
-          <div class="chart-card"><h4>🔄 Por estado</h4><div class="chart-container"><canvas id="chartStatus"></canvas></div></div>
-          <div class="chart-card"><h4>⚡ Por prioridad</h4><div class="chart-container"><canvas id="chartPriority"></canvas></div></div>
-          <div class="chart-card"><h4>👤 Por asignado (top 8)</h4><div class="chart-container"><canvas id="chartAssignee"></canvas></div></div>
-        </div>
-        <div class="chart-card" style="margin-top:20px;">
-          <h4>📅 Timeline de tareas</h4>
-          <div class="timeline-wrap"><div id="ganttChart"></div></div>
-        </div>
-      </div>
-
-      <!-- OPTIONS -->
-      <div class="tab-content" id="tab-options" style="padding-bottom:20px;">
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:24px;">
-          <div>
-            <div class="section-title">📝 Contenido del evento</div>
-            <div class="option-item"><input type="checkbox" id="optIncludeDesc" checked><label for="optIncludeDesc">Incluir descripción completa</label></div>
-            <div class="option-item"><input type="checkbox" id="optIncludeLink" checked><label for="optIncludeLink">Incluir enlace a Jira</label></div>
-            <div class="option-item"><input type="checkbox" id="optIncludeStatus" checked><label for="optIncludeStatus">Incluir estado</label></div>
-            <div class="option-item"><input type="checkbox" id="optIncludePriority" checked><label for="optIncludePriority">Incluir prioridad</label></div>
-            <div class="option-item"><input type="checkbox" id="optIncludeAssignee" checked><label for="optIncludeAssignee">Incluir persona asignada</label></div>
-          </div>
-          <div>
-            <div class="section-title">🏷️ Formato del título</div>
-            <div class="radio-group">
-              <label><input type="radio" name="titleFormat" value="key_summary" checked> [CLAVE] Resumen</label>
-              <label><input type="radio" name="titleFormat" value="summary_only"> Solo resumen</label>
-              <label><input type="radio" name="titleFormat" value="project_key_summary"> [Proyecto - CLAVE] Resumen</label>
-              <label><input type="radio" name="titleFormat" value="key_only"> Solo clave</label>
-            </div>
-          </div>
-          <div>
-            <div class="section-title">📆 Tipo de evento</div>
-            <div class="radio-group">
-              <label><input type="radio" name="eventType" value="allday" checked> Todo el día (recomendado)</label>
-              <label><input type="radio" name="eventType" value="timed"> Con hora (si está en Jira)</label>
-            </div>
-          </div>
-          <div>
-            <div class="section-title">🔢 Cuando falta una fecha</div>
-            <div class="radio-group">
-              <label><input type="radio" name="missingDate" value="skip" checked> Omitir la tarea</label>
-              <label><input type="radio" name="missingDate" value="same"> Usar la fecha disponible para inicio y fin</label>
-              <label><input type="radio" name="missingDate" value="today"> Usar la fecha de hoy como faltante</label>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- EXPORT -->
-      <div class="tab-content" id="tab-export" style="padding-bottom:20px;">
-        <div class="export-actions">
-          <button class="btn btn-success"   id="exportAllBtn">⬇️ Descargar todo en un CSV</button>
-          <button class="btn btn-primary"   id="exportByProjectBtn">📁 Un CSV por proyecto</button>
-          <button class="btn btn-secondary" id="exportByStatusBtn">🔄 Un CSV por estado</button>
-        </div>
-        <p style="margin-top:12px;font-size:.85rem;color:var(--text2);">
-          Si exportas por proyecto o estado se descargará un archivo por cada grupo.
-          Importa cada CSV en Google Calendar de forma independiente.
-        </p>
-        <div id="exportPreview" style="margin-top:16px;"></div>
-      </div>
-
-    </div><!-- /.section tabs -->
-  </div><!-- /#resultsSection -->
-
-</main>
-
-<!-- ── Third-party libraries ─────────────────────────────────────────── -->
-<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-
-<!-- ── Application modules (config first, app last) ─────────────────── -->
-<script src="js/config.js"></script>
-<script src="js/utils.js"></script>
-<script src="js/parser.js"></script>
-<script src="js/filters.js"></script>
-<script src="js/table.js"></script>
-<script src="js/charts.js"></script>
-<script src="js/export.js"></script>
-<script src="js/jira-api.js"></script>
-<script src="js/app.js"></script>
+  <!-- ── Application modules (config first, app last) ─────────────────── -->
+  <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/parser.js"></script>
+  <script src="js/filters.js"></script>
+  <script src="js/table.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/export.js"></script>
+  <script src="js/jira-api.js"></script>
+  <script src="js/app.js"></script>
 
 </body>
+
 </html>

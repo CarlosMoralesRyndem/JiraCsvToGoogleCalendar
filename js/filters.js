@@ -21,52 +21,69 @@ function buildFilters() {
   const opt = (v) => `<option value="${esc(v)}">${esc(v)}</option>`;
 
   document.getElementById('filtersGrid').innerHTML = `
-    <div class="filter-group">
-      <label>Proyecto(s)</label>
-      <select id="fProject" multiple>${projects.map(opt).join('')}</select>
+    <div class="filter-section">
+      <div class="filter-section-head">🔍 Búsqueda rápida</div>
+      <div class="filter-search-row">
+        <div class="filter-group">
+          <label>Buscar en clave / resumen</label>
+          <input type="text" id="fSearch" placeholder="Texto a buscar...">
+        </div>
+        <div class="filter-group">
+          <label>Solo con fechas</label>
+          <select id="fHasDates">
+            <option value="any">Todas las tareas</option>
+            <option value="both">Con inicio Y fin</option>
+            <option value="any_date">Con al menos una fecha</option>
+            <option value="start_only">Solo con fecha inicio</option>
+            <option value="due_only">Solo con fecha fin</option>
+            <option value="none">Sin ninguna fecha</option>
+          </select>
+        </div>
+      </div>
     </div>
-    <div class="filter-group">
-      <label>Estado(s)</label>
-      <select id="fStatus" multiple>${statuses.map(opt).join('')}</select>
+
+    <div class="filter-section">
+      <div class="filter-section-head">📋 Categorías</div>
+      <div class="filters-grid">
+        <div class="filter-group">
+          <label>Proyecto(s)</label>
+          <select id="fProject" multiple>${projects.map(opt).join('')}</select>
+        </div>
+        <div class="filter-group">
+          <label>Estado(s)</label>
+          <select id="fStatus" multiple>${statuses.map(opt).join('')}</select>
+        </div>
+        <div class="filter-group">
+          <label>Persona asignada</label>
+          <select id="fAssignee" multiple>${assignees.map(opt).join('')}</select>
+        </div>
+        <div class="filter-group">
+          <label>Prioridad</label>
+          <select id="fPriority" multiple>${priorities.map(opt).join('')}</select>
+        </div>
+      </div>
     </div>
-    <div class="filter-group">
-      <label>Persona asignada</label>
-      <select id="fAssignee" multiple>${assignees.map(opt).join('')}</select>
-    </div>
-    <div class="filter-group">
-      <label>Prioridad</label>
-      <select id="fPriority" multiple>${priorities.map(opt).join('')}</select>
-    </div>
-    <div class="filter-group">
-      <label>Fecha inicio desde</label>
-      <input type="date" id="fStartFrom">
-    </div>
-    <div class="filter-group">
-      <label>Fecha inicio hasta</label>
-      <input type="date" id="fStartTo">
-    </div>
-    <div class="filter-group">
-      <label>Fecha fin desde</label>
-      <input type="date" id="fDueFrom">
-    </div>
-    <div class="filter-group">
-      <label>Fecha fin hasta</label>
-      <input type="date" id="fDueTo">
-    </div>
-    <div class="filter-group">
-      <label>Solo con fechas</label>
-      <select id="fHasDates">
-        <option value="any">Todas</option>
-        <option value="both">Con inicio Y fin</option>
-        <option value="any_date">Con al menos una fecha</option>
-        <option value="start_only">Solo con fecha inicio</option>
-        <option value="due_only">Solo con fecha fin</option>
-        <option value="none">Sin ninguna fecha</option>
-      </select>
-    </div>
-    <div class="filter-group">
-      <label>Buscar en clave / resumen</label>
-      <input type="text" id="fSearch" placeholder="Texto a buscar...">
+
+    <div class="filter-section filter-section-last">
+      <div class="filter-section-head">📅 Rango de fechas</div>
+      <div class="filters-grid">
+        <div class="filter-group">
+          <label>Inicio desde</label>
+          <input type="date" id="fStartFrom">
+        </div>
+        <div class="filter-group">
+          <label>Inicio hasta</label>
+          <input type="date" id="fStartTo">
+        </div>
+        <div class="filter-group">
+          <label>Fin desde</label>
+          <input type="date" id="fDueFrom">
+        </div>
+        <div class="filter-group">
+          <label>Fin hasta</label>
+          <input type="date" id="fDueTo">
+        </div>
+      </div>
     </div>
   `;
 
