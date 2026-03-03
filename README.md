@@ -5,41 +5,31 @@ Soporta dos modos de carga: **CSV exportado desde Jira** o **conexión directa a
 
 ---
 
-## Modos de uso
+## Cómo ejecutar
 
-| Modo | Requisito | Cuándo usarlo |
-|---|---|---|
-| **CSV** | Solo navegador | Tienes un archivo exportado de Jira |
-| **Jira API** | Node.js instalado | Quieres consultar tareas en tiempo real con JQL |
-
----
-
-## Requisitos previos
-
-- **Modo CSV**: ninguno — abre `index.html` directo en el navegador.
-- **Modo API**: [Node.js](https://nodejs.org/) instalado (v16 o superior).
-
----
-
-## Ejecución
-
-### Modo CSV (sin servidor)
-
-Abre el archivo `index.html` directamente en tu navegador.
-No requiere instalación, servidor ni conexión a internet.
-
-### Modo API (con servidor local)
+> **Siempre usa `iniciar.bat` para abrir la herramienta.** Esto aplica tanto para el modo CSV como para el modo API.
 
 1. Haz doble clic en **`iniciar.bat`**
-2. El script:
-   - Verifica que Node.js esté instalado
+2. El script automáticamente:
+   - Verifica que [Node.js](https://nodejs.org/) esté instalado (requerido)
    - Libera el puerto 3000 si estaba ocupado
-   - Instala las dependencias automáticamente (solo la primera vez)
-   - Levanta el servidor en `http://localhost:3000`
-   - Abre el navegador automáticamente
+   - Instala las dependencias la primera vez (`npm install`)
+   - Levanta el servidor local en `http://localhost:3000`
+   - Abre el navegador apuntando a esa URL
 3. Para cerrar, cierra la ventana del terminal o presiona `Ctrl+C`
 
-> **Nota:** El servidor actúa como proxy hacia la API de Jira para evitar bloqueos CORS. Las credenciales nunca salen de tu máquina local.
+> El servidor actúa como proxy hacia la API de Jira para evitar bloqueos CORS. Las credenciales nunca salen de tu máquina local.
+
+---
+
+## Modos de uso
+
+Una vez abierta la herramienta, elige el modo desde la pantalla de inicio:
+
+| Modo | Cuándo usarlo |
+|---|---|
+| **CSV** | Tienes un archivo exportado desde Jira |
+| **Jira API** | Quieres consultar tareas en tiempo real con JQL |
 
 ---
 
